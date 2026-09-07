@@ -1,0 +1,72 @@
+[
+  {
+    "id": 1,
+    "unidade": "Penitenciária Federal em Porto Velho - PFPV",
+    "seq": 1,
+    "servidor": "Jefferson de Medeiros Silva",
+    "observacao_oficio": "Ofício 424 (SEI nº 36351643)"
+  },
+  {
+    "id": 2,
+    "unidade": "Penitenciária Federal em Porto Velho - PFPV",
+    "seq": 2,
+    "servidor": "Claudio Félix Gonçalves",
+    "observacao_oficio": null
+  },
+  {
+    "id": 3,
+    "unidade": "Penitenciária Federal em Mossoró - PFMOS",
+    "seq": 1,
+    "servidor": "Anna Paula Torres Guedes da Silva",
+    "observacao_oficio": "Ofício 637 (36321882)"
+  },
+  {
+    "id": 4,
+    "unidade": "Penitenciária Federal em Mossoró - PFMOS",
+    "seq": 2,
+    "servidor": "Renofran Lima de Sousa",
+    "observacao_oficio": null
+  },
+  {
+    "id": 5,
+    "unidade": "Penitenciária Federal em Campo Grande - PFCG",
+    "seq": 1,
+    "servidor": "Édilla Kattiara Dias da Hora Freitas",
+    "observacao_oficio": "Ofício 188 (SEI nº 36184736) e Ofício 199 (SEI nº 36318979)"
+  },
+  {
+    "id": 6,
+    "unidade": "Penitenciária Federal em Campo Grande - PFCG",
+    "seq": 2,
+    "servidor": "Eduardo Sousa de Lima",
+    "observacao_oficio": null
+  },
+  {
+    "id": 7,
+    "unidade": "Penitenciária Federal em Brasília - PFBRA",
+    "seq": 1,
+    "servidor": "Jéssica Ellen da Silva Lima",
+    "observacao_oficio": "Ofício 16 (SEI nº 36383480)"
+  },
+  {
+    "id": 8,
+    "unidade": "Penitenciária Federal em Brasília - PFBRA",
+    "seq": 2,
+    "servidor": "Tiago Aluísio Lopes de Sousa",
+    "observacao_oficio": null
+  },
+  {
+    "id": 9,
+    "unidade": "Penitenciária Federal em Catanduvas - PFCAT",
+    "seq": 1,
+    "servidor": "Bruno Henrique Martusevicus, SIAPE nº 2358586, Presidente",
+    "observacao_oficio": "Portaria 135 (36373976)"
+  },
+  {
+    "id": 10,
+    "unidade": "Penitenciária Federal em Catanduvas - PFCAT",
+    "seq": 2,
+    "servidor": "Jonas de Oliveira Dos Santos, Responsável pela área de patrimônio",
+    "observacao_oficio": null
+  }
+]

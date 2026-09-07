@@ -1,0 +1,92 @@
+[
+  {
+    "ug_id": 1,
+    "codigo": 200326,
+    "sigla": "DIREX",
+    "nome": "DIRETORIA EXECUTIVA",
+    "tipo": "DIRETORIA",
+    "processo_ug": null,
+    "portaria_geral": null
+  },
+  {
+    "ug_id": 2,
+    "codigo": 200323,
+    "sigla": "DPPF",
+    "nome": "DIRETORIA DE POLÍTICA PENAL FEDERAL",
+    "tipo": "DIRETORIA",
+    "processo_ug": "08016.015646/2026-71",
+    "portaria_geral": "Despacho 3662 (36191712)"
+  },
+  {
+    "ug_id": 3,
+    "codigo": 200324,
+    "sigla": "DIRPP",
+    "nome": "DIRETORIA DE POLÍTICAS PENITENCIÁRIAS",
+    "tipo": "DIRETORIA",
+    "processo_ug": null,
+    "portaria_geral": "Despacho 3716 (36484471)"
+  },
+  {
+    "ug_id": 4,
+    "codigo": 200327,
+    "sigla": "DIPEN",
+    "nome": "DIRETORIA DE INTELIGÊNCIA PENITENCIÁRIA",
+    "tipo": "DIRETORIA",
+    "processo_ug": null,
+    "portaria_geral": null
+  },
+  {
+    "ug_id": 5,
+    "codigo": 200456,
+    "sigla": "DICAP",
+    "nome": "DIRETORIA DE CIDADANIA E ALTERNATIVAS PENAIS",
+    "tipo": "DIRETORIA",
+    "processo_ug": "08016.015872/2026-52",
+    "portaria_geral": "Despacho 2490 (36223813)"
+  },
+  {
+    "ug_id": 6,
+    "codigo": 200600,
+    "sigla": "PFCG",
+    "nome": "PENITENCIÁRIA FEDERAL EM CAMPO GRANDE",
+    "tipo": "PENITENCIARIA_FEDERAL",
+    "processo_ug": "08118.003298/2026-41",
+    "portaria_geral": "Portaria 255 (SEI nº 36185723) e Errata (SEI nº 36320213)"
+  },
+  {
+    "ug_id": 7,
+    "codigo": 200601,
+    "sigla": "PFCAT",
+    "nome": "PENITENCIÁRIA FEDERAL EM CATANDUVAS",
+    "tipo": "PENITENCIARIA_FEDERAL",
+    "processo_ug": "08117.003739/2026-15",
+    "portaria_geral": "Portaria 135 (SEI nº 36373976)"
+  },
+  {
+    "ug_id": 8,
+    "codigo": 200603,
+    "sigla": "PFPV",
+    "nome": "PENITENCIÁRIA FEDERAL EM PORTO VELHO",
+    "tipo": "PENITENCIARIA_FEDERAL",
+    "processo_ug": "08120.005817/2026-67",
+    "portaria_geral": "Portaria 244 (36416225)"
+  },
+  {
+    "ug_id": 9,
+    "codigo": 200602,
+    "sigla": "PFMOS",
+    "nome": "PENITENCIÁRIA FEDERAL EM MOSSORÓ",
+    "tipo": "PENITENCIARIA_FEDERAL",
+    "processo_ug": "08119.003612/2026-86",
+    "portaria_geral": "Portaria 175 (36416194)"
+  },
+  {
+    "ug_id": 10,
+    "codigo": 200604,
+    "sigla": "PFBRA",
+    "nome": "PENITENCIÁRIA FEDERAL EM BRASÍLIA",
+    "tipo": "PENITENCIARIA_FEDERAL",
+    "processo_ug": "08016.015704/2026-67",
+    "portaria_geral": "Portaria 211 (36385472)"
+  }
+]

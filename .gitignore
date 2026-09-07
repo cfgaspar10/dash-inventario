@@ -1,0 +1,22 @@
+# Arquivos de sistema operacional
+.DS_Store
+Thumbs.db
+
+# Arquivos temporários e de edição
+*.tmp
+*.bak
+*~
+*.swp
+
+# Ambientes virtuais e dependências
+.env
+.venv
+env/
+venv/
+__pycache__/
+*.pyc
+
+# IDEs e editores
+.vscode/
+.idea/
+.gemini/

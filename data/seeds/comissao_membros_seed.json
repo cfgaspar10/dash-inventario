@@ -1,0 +1,138 @@
+[
+  {
+    "id": 1,
+    "ug_origem": "UG - 200326 - DIRETORIA EXECUTIVA - (DIREX)",
+    "seq_uorg": 1,
+    "uorg_codigo": "34973",
+    "uorg_sigla": "DIREX",
+    "integrantes_texto": "Douglas Ramon Effting, SIAPE - 3123500 e  Mendel Naschpitz, SIAPE -      871978-3"
+  },
+  {
+    "id": 2,
+    "ug_origem": "UG - 200326 - DIRETORIA EXECUTIVA - (DIREX)",
+    "seq_uorg": 13,
+    "uorg_codigo": "34984",
+    "uorg_sigla": "CGLIC",
+    "integrantes_texto": "Giovanna Martins de Souza , matrícula nº  2251342"
+  },
+  {
+    "id": 3,
+    "ug_origem": "UG - 200326 - DIRETORIA EXECUTIVA - (DIREX)",
+    "seq_uorg": 21,
+    "uorg_codigo": "34975",
+    "uorg_sigla": "CGOF",
+    "integrantes_texto": "Thalles da Paz Moreira, matrícula SIAPE nº 2075005"
+  },
+  {
+    "id": 4,
+    "ug_origem": "UG - 200326 - DIRETORIA EXECUTIVA - (DIREX)",
+    "seq_uorg": 26,
+    "uorg_codigo": "34979",
+    "uorg_sigla": "CGGP",
+    "integrantes_texto": "Anselmo Soares da Silva"
+  },
+  {
+    "id": 5,
+    "ug_origem": "UG - 200326 - DIRETORIA EXECUTIVA - (DIREX)",
+    "seq_uorg": 38,
+    "uorg_codigo": "34989",
+    "uorg_sigla": "CGMEAP",
+    "integrantes_texto": "Nestor Peres Garcia, SIAPE - 3319804"
+  },
+  {
+    "id": 6,
+    "ug_origem": "UG - 200323 - DIRETORIA DA POLICIA PENAL FEDERAL - DPPF",
+    "seq_uorg": 1,
+    "uorg_codigo": "35010",
+    "uorg_sigla": "DDPF",
+    "integrantes_texto": "Rafael Borges Peixoto , Rosilene Moura Fernandes e Lianne de Oliveira Cruz"
+  },
+  {
+    "id": 7,
+    "ug_origem": "UG - 200324 - DIRETORIA DE POLÍTICAS PENITENCIÁRIAS - (DIRPP)",
+    "seq_uorg": 1,
+    "uorg_codigo": "91630",
+    "uorg_sigla": "DITEA",
+    "integrantes_texto": "Wesley Ricardo Silva, Breno de Sousa Cartaxo Gomes e Carlos Carrera da Silva"
+  },
+  {
+    "id": 8,
+    "ug_origem": "UG - 200327 - DIRETORIA DE INTELIGÊNCIA PENITENCIÁRIA - (DIPEN)",
+    "seq_uorg": 1,
+    "uorg_codigo": "35022",
+    "uorg_sigla": "DIPEN",
+    "integrantes_texto": "Jhéssica de Oliveira Santos, matrícula nº 2355836, Thays Albertim Oliveira, matrícula nº 1751056 e Lucas Felipe Moreira Lopo, matrícula nº 3122831"
+  },
+  {
+    "id": 9,
+    "ug_origem": "UG - 200327 - DIRETORIA DE INTELIGÊNCIA PENITENCIÁRIA - (DIPEN)",
+    "seq_uorg": 2,
+    "uorg_codigo": "56778",
+    "uorg_sigla": "CGINT",
+    "integrantes_texto": "Gilberto Cardoso da Silva, matrícula nº 1552379"
+  },
+  {
+    "id": 10,
+    "ug_origem": "UG - 200327 - DIRETORIA DE INTELIGÊNCIA PENITENCIÁRIA - (DIPEN)",
+    "seq_uorg": 5,
+    "uorg_codigo": "35023",
+    "uorg_sigla": "CEDAP",
+    "integrantes_texto": "Vicente de Paulo Costa, matrícula nº 2358468"
+  },
+  {
+    "id": 11,
+    "ug_origem": "UG - 200327 - DIRETORIA DE INTELIGÊNCIA PENITENCIÁRIA - (DIPEN)",
+    "seq_uorg": 6,
+    "uorg_codigo": "85361",
+    "uorg_sigla": "CGCINP",
+    "integrantes_texto": "Cyro Maisonnete Veloso Neto, matrícula nº 3295528"
+  },
+  {
+    "id": 12,
+    "ug_origem": "UG - 200456 - DIRETORIA DE CIDADANIA E ALTERNATIVAS PENAIS - (DICAP)",
+    "seq_uorg": 1,
+    "uorg_codigo": "110315",
+    "uorg_sigla": "COMEL",
+    "integrantes_texto": "Luís Paulo Amyr Oliveira Sousa,  Aécio Argos Madureira Carneiro e André pereira Rodrigues Godoi"
+  },
+  {
+    "id": 13,
+    "ug_origem": "UG - 200600 - PENITENCIÁRIA FEDERAL EM CAMPO GRANDE - PFCG",
+    "seq_uorg": 1,
+    "uorg_codigo": "35018",
+    "uorg_sigla": "DIPF",
+    "integrantes_texto": "Portaria 255 (36185723) e Errata (36320213)"
+  },
+  {
+    "id": 14,
+    "ug_origem": "UG - 200601 - PENITENCIÁRIA FEDERAL EM CATANDUVAS - PFCAT",
+    "seq_uorg": 1,
+    "uorg_codigo": "35017",
+    "uorg_sigla": "DIPF",
+    "integrantes_texto": "Portaria 135 (36373976)"
+  },
+  {
+    "id": 15,
+    "ug_origem": "UG - 200603 - PENITENCIÁRIA FEDERAL EM PORTO VELHO - PFPV",
+    "seq_uorg": 1,
+    "uorg_codigo": "107828",
+    "uorg_sigla": "NUCOR",
+    "integrantes_texto": "Portaria 244 (36416225)"
+  },
+  {
+    "id": 16,
+    "ug_origem": "UG - 200602 - PENITENCIÁRIA FEDERAL EM MOSSORÓ - PFMOS",
+    "seq_uorg": 1,
+    "uorg_codigo": "114169",
+    "uorg_sigla": "AGFRO",
+    "integrantes_texto": "Portaria 175 (36416194)"
+  },
+  {
+    "id": 17,
+    "ug_origem": "UG - 200604 - PENITENCIÁRIA FEDERAL EM BRASÍLIA - PFBRA",
+    "seq_uorg": 1,
+    "uorg_codigo": "35715",
+    "uorg_sigla": "DIAD",
+    "integrantes_texto": "Portaria 211 (36385472)"
+  }
+]
