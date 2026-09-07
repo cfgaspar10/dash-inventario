@@ -8,10 +8,27 @@ Sistema dinâmico para acompanhamento e governança do processo de inventário a
 
 O processo de inventário anual envolve a identificação, acautelamento e prestação de contas dos bens móveis e permanentes alocados em todas as Unidades Gestoras (UGs) e Unidades Organizacionais (UORGs) da SENAPPEN, abrangendo tanto os órgãos da Sede em Brasília quanto as Penitenciárias Federais distribuídas pelo país.
 
-### Principais Marcos Temporais do Exercício 2026:
-- **Processo Mãe SENAPPEN:** `08016.007081/2026-59`
-- **Marco 1 — Informações de Bens Acautelados:** Prazo limite até **31/08/2026**
+### Principais Marcos Temporais do Exercício 2026 (Ofício-Circular SEI nº 35011389):
+- **Processo Geral SENAPPEN:** `08016.007081/2026-59`
+- **Portaria de Designação da Comissão da UG:** Prazo até **28/07/2026**
+- **Capacitação Presencial na Sede SENAPPEN:** Realizada em **27 e 28/08/2026**
+- **Marco 1 — Bens Acautelados e Instauração por UORG:** Prazo limite até **31/08/2026**
+- **Capacitação nas Penitenciárias Federais:** Realizada de **01 a 02/09/2026**
 - **Marco 2 — Relatório Final Consolidado da UG:** Prazo limite até **30/11/2026**
+- **Aprovação pelo Ordenador de Despesas:** Prazo até **10/12/2026**
+- **Processamento e Fechamento Contábil/SIAFI/SIADS:** Prazo até **31/12/2026**
+
+---
+
+## 🖥️ Dashboard Simplificado de Acompanhamento
+
+O sistema conta com um painel executivo direto, com três status fundamentais:
+- 🔴 **Não iniciado:** 32 UORGs (14,3%) — Sem processo autuado ou comissão.
+- 🟡 **Em andamento:** 192 UORGs (85,7%) — Processos autuados e declarações de bens sendo instruídas.
+- 🟢 **Processado:** 0 UORGs (0,0%) — Relatórios finais concluídos (meta final do exercício).
+- ⏳ **Quanto Resta a Processar:** **224 UORGs (100%)** até o encerramento do exercício em 30/11/2026.
+
+Para visualizar localmente, basta abrir o arquivo [`index.html`](file:///Users/gaspar/apps/dash_inventario/index.html) diretamente em qualquer navegador ou acoplar via Google Apps Script (`src/gas/Code.gs`).
 
 ---
 
