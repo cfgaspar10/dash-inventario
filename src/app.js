@@ -233,8 +233,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function filterUgSelectOptions(grupo) {
-    const currentUg = elements.ugSelect.value;
+  function filterUgSelectOptions(grupo, resetToAll = false) {
+    const currentUg = resetToAll ? 'TODAS' : elements.ugSelect.value;
     elements.ugSelect.innerHTML = '<option value="TODAS">Todas as Diretorias/UGs</option>';
     
     state.ugs.forEach(ug => {
@@ -250,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    elements.ugSelect.value = elements.ugSelect.querySelector(`option[value="${currentUg}"]`) ? currentUg : 'TODAS';
+    elements.ugSelect.value = resetToAll ? 'TODAS' : (elements.ugSelect.querySelector(`option[value="${currentUg}"]`) ? currentUg : 'TODAS');
     state.filters.ug = elements.ugSelect.value;
   }
 
@@ -291,7 +291,8 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.searchInput.value = '';
     elements.grupoSelect.value = 'TODOS';
     elements.statusSelect.value = 'TODOS';
-    filterUgSelectOptions('TODOS');
+    filterUgSelectOptions('TODOS', true);
+    elements.ugSelect.value = 'TODAS';
     updateKpiCardsHighlight();
     applyFilters();
   }
