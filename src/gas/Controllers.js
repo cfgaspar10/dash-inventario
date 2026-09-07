@@ -11,8 +11,9 @@ const DashboardController = {
   obterDados: function() {
     try {
       const uorgs = InventarioModel.obterTodos();
+      const ugs = UgModel.obterTodas();
+      const ciclo = CicloModel.obterParametros();
 
-      // Se a planilha estiver vazia ou não inicializada, sinaliza para usar fallback local
       if (!uorgs || uorgs.length === 0) {
         return {
           status: 'warning',
@@ -23,20 +24,52 @@ const DashboardController = {
         };
       }
 
+      // Filtra apenas UORGs ativas para o dashboard
+      const uorgsAtivas = uorgs.filter(u => u.ativo !== 'N');
+
       return {
         status: 'success',
         origem: 'planilha',
-        exercicio: CONFIG.EXERCICIO,
-        processo_mae: CONFIG.PROCESSO_MAE,
-        oficio_circular: CONFIG.OFICIO_CIRCULAR,
-        total: uorgs.length,
-        dados: uorgs
+        exercicio: ciclo.ano_exercicio || CONFIG.EXERCICIO,
+        processo_mae: ciclo.processo_sei_mae || CONFIG.PROCESSO_MAE,
+        oficio_circular: ciclo.oficio_circular || CONFIG.OFICIO_CIRCULAR,
+        total: uorgsAtivas.length,
+        dados: uorgsAtivas,
+        ugs: ugs.length > 0 ? ugs : null
       };
     } catch (err) {
       return {
         status: 'error',
         mensagem: err.toString(),
         dados: null
+      };
+    }
+  },
+
+  /**
+   * Obtém a carga inicial completa e atualizada da planilha para sincronização do frontend
+   */
+  obterDadosCompletos: function() {
+    try {
+      const uorgs = InventarioModel.obterTodos();
+      const ugs = UgModel.obterTodas();
+      const ciclos = CicloModel.obterTodos();
+      const ciclo = CicloModel.obterParametros();
+      const cronograma = CronogramaModel.obterTodos();
+
+      return {
+        status: 'success',
+        origem: 'planilha_google',
+        inventario: uorgs,
+        ugs: ugs,
+        ciclos: ciclos,
+        ciclo: ciclo,
+        cronograma: cronograma
+      };
+    } catch (err) {
+      return {
+        status: 'error',
+        mensagem: err.toString()
       };
     }
   }
@@ -128,10 +161,197 @@ const GestaoController = {
   }
 };
 
-const AdminController = {
+/**
+ * [NOVO] Controlador de Configurações Estruturais e Governança
+ */
+const AdminConfigController = {
   /**
-   * Executa a carga inicial e formatação das 5 abas
+   * Retorna os dados completos para a tela de configurações
    */
+  obterDadosConfig: function() {
+    try {
+      const ugs = UgModel.obterTodas();
+      const ciclo = CicloModel.obterParametros();
+      const ciclos = CicloModel.obterTodos();
+      const cronograma = CronogramaModel.obterTodos();
+      const uorgs = InventarioModel.obterTodos();
+
+      return {
+        status: 'success',
+        ugs: ugs,
+        ciclo: ciclo,
+        ciclos: ciclos,
+        cronograma: cronograma,
+        totalUorgs: uorgs.length,
+        uorgs: uorgs
+      };
+    } catch (err) {
+      return { status: 'error', mensagem: err.toString() };
+    }
+  },
+
+  /**
+   * Salva (insere ou edita) uma Unidade Gestora (UG)
+   */
+  salvarUg: function(payload) {
+    try {
+      const res = UgModel.salvar(payload);
+      return {
+        status: 'success',
+        mensagem: res.operacao === 'inclusao' ? 'Nova UG cadastrada com sucesso!' : 'UG atualizada com sucesso!',
+        dados: res
+      };
+    } catch (err) {
+      return { status: 'error', mensagem: err.message || err.toString() };
+    }
+  },
+
+  /**
+   * Exclui definitivamente uma UG
+   */
+  excluirUg: function(siglaOuId) {
+    try {
+      const res = UgModel.excluir(siglaOuId);
+      return {
+        status: 'success',
+        mensagem: 'Unidade Gestora excluída com sucesso!',
+        dados: res
+      };
+    } catch (err) {
+      return { status: 'error', mensagem: err.message || err.toString() };
+    }
+  },
+
+  /**
+   * Cadastra uma nova UORG via aplicação
+   */
+  cadastrarUorg: function(payload) {
+    try {
+      const res = InventarioModel.cadastrarUorg(payload);
+      return {
+        status: 'success',
+        mensagem: 'Nova UORG cadastrada com sucesso!',
+        dados: res
+      };
+    } catch (err) {
+      return { status: 'error', mensagem: err.message || err.toString() };
+    }
+  },
+
+  /**
+   * Exclui definitivamente uma UORG
+   */
+  excluirUorg: function(id) {
+    try {
+      const res = InventarioModel.excluirUorg(id);
+      return {
+        status: 'success',
+        mensagem: 'UORG excluída da base de inventário!',
+        dados: res
+      };
+    } catch (err) {
+      return { status: 'error', mensagem: err.message || err.toString() };
+    }
+  },
+
+  /**
+   * Alterna status de ativação da UORG (Ativa/Inativa)
+   */
+  toggleUorg: function(id, novoStatusAtivo) {
+    try {
+      const res = InventarioModel.alternarStatusUorg(id, novoStatusAtivo);
+      return {
+        status: 'success',
+        mensagem: novoStatusAtivo === 'S' ? 'UORG reativada!' : 'UORG desativada!',
+        dados: res
+      };
+    } catch (err) {
+      return { status: 'error', mensagem: err.message || err.toString() };
+    }
+  },
+
+  /**
+   * Salva parâmetros globais ou cadastra novo ciclo de inventário
+   */
+  salvarParametrosCiclo: function(payload) {
+    try {
+      const res = CicloModel.salvarCiclo(payload);
+      return {
+        status: 'success',
+        mensagem: res.operacao === 'inclusao' ? 'Novo Ciclo de Inventário criado com sucesso!' : 'Parâmetros do ciclo atualizados!',
+        dados: res
+      };
+    } catch (err) {
+      return { status: 'error', mensagem: err.message || err.toString() };
+    }
+  },
+
+  /**
+   * Ativa um ciclo como corrente/vigente
+   */
+  ativarCiclo: function(idOuAno) {
+    try {
+      const res = CicloModel.ativarCiclo(idOuAno);
+      return {
+        status: 'success',
+        mensagem: 'Ciclo ativado como vigente para a aplicação!',
+        dados: res
+      };
+    } catch (err) {
+      return { status: 'error', mensagem: err.message || err.toString() };
+    }
+  },
+
+  /**
+   * Exclui um ciclo de inventário
+   */
+  excluirCiclo: function(idOuAno) {
+    try {
+      const res = CicloModel.excluirCiclo(idOuAno);
+      return {
+        status: 'success',
+        mensagem: 'Ciclo de inventário excluído!',
+        dados: res
+      };
+    } catch (err) {
+      return { status: 'error', mensagem: err.message || err.toString() };
+    }
+  },
+
+  /**
+   * Salva ou edita uma etapa da régua do cronograma
+   */
+  salvarEtapaCronograma: function(payload) {
+    try {
+      const res = CronogramaModel.salvarEtapa(payload);
+      return {
+        status: 'success',
+        mensagem: res.operacao === 'inclusao' ? 'Nova etapa adicionada ao cronograma!' : 'Etapa do cronograma atualizada!',
+        dados: res
+      };
+    } catch (err) {
+      return { status: 'error', mensagem: err.message || err.toString() };
+    }
+  },
+
+  /**
+   * Exclui uma etapa da régua do cronograma
+   */
+  excluirEtapaCronograma: function(id) {
+    try {
+      const res = CronogramaModel.excluirEtapa(id);
+      return {
+        status: 'success',
+        mensagem: 'Etapa removida do cronograma!',
+        dados: res
+      };
+    } catch (err) {
+      return { status: 'error', mensagem: err.message || err.toString() };
+    }
+  }
+};
+
+const AdminController = {
   inicializarEstrutura: function() {
     const rawHtml = HtmlService.createHtmlOutputFromFile('data').getContent();
     const match = rawHtml.match(/window\.DASH_DATA\s*=\s*(\{[\s\S]*?\});/);

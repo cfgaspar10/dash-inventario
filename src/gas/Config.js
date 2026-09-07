@@ -16,7 +16,8 @@ const CONFIG = {
     UG: 'tb_ug',
     INVENTARIO: 'tb_inventario_acompanhamento',
     COMISSAO: 'tb_comissao_membro',
-    CAPACITACAO: 'tb_capacitacao'
+    CAPACITACAO: 'tb_capacitacao',
+    CRONOGRAMA: 'tb_cronograma'
   },
 
   // Marcos Oficiais de Prazos

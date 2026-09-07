@@ -13,6 +13,7 @@ function onOpen() {
     .createMenu('🏛️ Inventário 2026')
     .addItem('📊 Abrir Painel / Dashboard', 'abrirDashboardModal')
     .addItem('📝 Módulo de Gestão Operacional', 'abrirGestaoModal')
+    .addItem('⚙️ Configurações & Estrutura', 'abrirConfigModal')
     .addItem('📑 Abrir Painel na Barra Lateral', 'abrirDashboardSidebar')
     .addSeparator()
     .addItem('⚡ Estruturar Banco de Dados e Carga de Seeds', 'inicializarEstruturaBanco')
@@ -25,42 +26,55 @@ function onOpen() {
  */
 function doGet(e) {
   const template = HtmlService.createTemplateFromFile('index');
+  try {
+    const dados = DashboardController.obterDadosCompletos();
+    template.dadosIniciais = JSON.stringify(dados);
+  } catch (err) {
+    console.error('Erro ao ler banco no doGet:', err);
+    template.dadosIniciais = 'null';
+  }
   return template.evaluate()
-    .setTitle('Painel de Gestão do Inventário 2026 — SENAPPEN')
+    .setTitle('Sistema de Gestão do Inventário 2026 — SENAPPEN')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1.0')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-/**
- * Abre o Painel Executivo em Modal
- */
 function abrirDashboardModal() {
   const template = HtmlService.createTemplateFromFile('index');
+  try {
+    template.dadosIniciais = JSON.stringify(DashboardController.obterDadosCompletos());
+  } catch (e) { template.dadosIniciais = 'null'; }
   const html = template.evaluate().setWidth(1360).setHeight(840);
   SpreadsheetApp.getUi().showModalDialog(html, 'Painel Executivo — SENAPPEN 2026');
 }
 
-/**
- * Abre o Módulo de Gestão Operacional em Modal
- */
 function abrirGestaoModal() {
   const template = HtmlService.createTemplateFromFile('index');
+  try {
+    template.dadosIniciais = JSON.stringify(DashboardController.obterDadosCompletos());
+  } catch (e) { template.dadosIniciais = 'null'; }
   const html = template.evaluate().setWidth(1360).setHeight(840);
   SpreadsheetApp.getUi().showModalDialog(html, 'Gestão Operacional — SENAPPEN 2026');
 }
 
-/**
- * Abre a barra lateral
- */
+function abrirConfigModal() {
+  const template = HtmlService.createTemplateFromFile('index');
+  try {
+    template.dadosIniciais = JSON.stringify(DashboardController.obterDadosCompletos());
+  } catch (e) { template.dadosIniciais = 'null'; }
+  const html = template.evaluate().setWidth(1360).setHeight(840);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Administração e Configurações — SENAPPEN 2026');
+}
+
 function abrirDashboardSidebar() {
   const template = HtmlService.createTemplateFromFile('index');
+  try {
+    template.dadosIniciais = JSON.stringify(DashboardController.obterDadosCompletos());
+  } catch (e) { template.dadosIniciais = 'null'; }
   const html = template.evaluate().setTitle('Inventário SENAPPEN 2026');
   SpreadsheetApp.getUi().showSidebar(html);
 }
 
-/**
- * Inclusão de templates parciais
- */
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
@@ -71,6 +85,10 @@ function include(filename) {
 
 function getInventarioData() {
   return DashboardController.obterDados();
+}
+
+function obterDadosCompletos() {
+  return DashboardController.obterDadosCompletos();
 }
 
 function salvarUorg(payload) {
@@ -110,3 +128,49 @@ function inicializarEstruturaBanco() {
   }
   return res;
 }
+
+// Endpoints do Módulo de Configurações
+function obterDadosConfig() {
+  return AdminConfigController.obterDadosConfig();
+}
+
+function salvarUg(payload) {
+  return AdminConfigController.salvarUg(payload);
+}
+
+function excluirUg(siglaOuId) {
+  return AdminConfigController.excluirUg(siglaOuId);
+}
+
+function cadastrarUorg(payload) {
+  return AdminConfigController.cadastrarUorg(payload);
+}
+
+function excluirUorg(id) {
+  return AdminConfigController.excluirUorg(id);
+}
+
+function toggleUorg(id, novoStatusAtivo) {
+  return AdminConfigController.toggleUorg(id, novoStatusAtivo);
+}
+
+function salvarParametrosCiclo(payload) {
+  return AdminConfigController.salvarParametrosCiclo(payload);
+}
+
+function ativarCiclo(idOuAno) {
+  return AdminConfigController.ativarCiclo(idOuAno);
+}
+
+function excluirCiclo(idOuAno) {
+  return AdminConfigController.excluirCiclo(idOuAno);
+}
+
+function salvarEtapaCronograma(payload) {
+  return AdminConfigController.salvarEtapaCronograma(payload);
+}
+
+function excluirEtapaCronograma(id) {
+  return AdminConfigController.excluirEtapaCronograma(id);
+}
+

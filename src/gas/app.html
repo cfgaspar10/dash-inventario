@@ -1,15 +1,4 @@
 <script>
-// Bridge para carregar dados dinâmicos da planilha do GAS
-if (typeof google !== 'undefined' && google.script && google.script.run) {
-  google.script.run.withSuccessHandler(function(response) {
-    if (response && response.status === 'success' && response.dados && response.dados.length > 0) {
-      console.log('Dados carregados dinamicamente da planilha via GAS:', response.dados.length);
-      window.DASH_DATA.inventario = response.dados;
-      window.dispatchEvent(new Event('DOMContentLoaded'));
-    }
-  }).getInventarioData();
-}
-
 /**
  * Aplicação do Painel de Inventário SENAPPEN 2026
  * Arquitetura MVC - Controla o Módulo Dashboard e o Módulo de Gestão Operacional
@@ -36,16 +25,101 @@ document.addEventListener('DOMContentLoaded', () => {
       ug: 'TODAS',
       status: 'TODOS'
     },
-    activeKpiFilter: null
+    activeKpiFilter: null,
+    currentConfigSubtab: 'ugs',
+    configUorgSearch: '',
+    configUorgFiltroUg: 'TODAS',
+    ciclos: rawData.ciclos || [
+      {
+        id_ciclo: 1,
+        ano_exercicio: 2026,
+        processo_sei_mae: '08016.007081/2026-59',
+        data_limite_cautela: '2026-08-31',
+        data_limite_final: '2026-11-30',
+        status_ciclo: 'EM_ANDAMENTO',
+        ativo: 'S'
+      }
+    ],
+    ciclo: rawData.ciclo || {
+      ano: 2026,
+      processo_mae: '08016.007081/2026-59',
+      data_limite_cautela: '2026-08-31',
+      data_limite_relatorio: '2026-11-30',
+      status_ciclo: 'EM_ANDAMENTO'
+    }
   };
 
-  // Elementos do DOM
+  // Mapeamento dos Elementos do DOM
   const elements = {
-    // Tabs de Navegação
+    // Tabs de Navegação Principal
     tabDashboard: document.getElementById('tab-dashboard'),
     tabGestao: document.getElementById('tab-gestao'),
+    tabConfig: document.getElementById('tab-config'),
     viewDashboard: document.getElementById('view-dashboard'),
     viewGestao: document.getElementById('view-gestao'),
+    viewConfig: document.getElementById('view-config'),
+
+    // Sub-abas de Configuração
+    subtabUgs: document.getElementById('subtab-ugs'),
+    subtabUorgs: document.getElementById('subtab-uorgs'),
+    subtabCiclo: document.getElementById('subtab-ciclo'),
+    subtabCronograma: document.getElementById('subtab-cronograma'),
+    paneUgs: document.getElementById('pane-ugs'),
+    paneUorgs: document.getElementById('pane-uorgs'),
+    paneCiclo: document.getElementById('pane-ciclo'),
+    paneCronograma: document.getElementById('pane-cronograma'),
+
+    // Gestão de UGs
+    btnNovaUg: document.getElementById('btn-nova-ug'),
+    formUgCadastro: document.getElementById('form-ug-cadastro'),
+    btnCancelarUg: document.getElementById('btn-cancelar-ug'),
+    tableUgsBody: document.getElementById('table-ugs-body'),
+    formUgId: document.getElementById('form-ug-id'),
+    formUgTitle: document.getElementById('form-ug-title'),
+    formUgSigla: document.getElementById('form-ug-sigla'),
+    formUgCodigo: document.getElementById('form-ug-codigo'),
+    formUgNome: document.getElementById('form-ug-nome'),
+    formUgTipo: document.getElementById('form-ug-tipo'),
+    formUgProc: document.getElementById('form-ug-proc'),
+    formUgPortaria: document.getElementById('form-ug-portaria'),
+
+    // Gestão de UORGs (Config)
+    btnNovaUorgModal: document.getElementById('btn-nova-uorg-modal'),
+    formNovaUorg: document.getElementById('form-nova-uorg'),
+    btnCancelarNovaUorg: document.getElementById('btn-cancelar-nova-uorg'),
+    novaUorgUg: document.getElementById('nova-uorg-ug'),
+    novaUorgCodigo: document.getElementById('nova-uorg-codigo'),
+    novaUorgSigla: document.getElementById('nova-uorg-sigla'),
+    novaUorgProc: document.getElementById('nova-uorg-proc'),
+    tableConfigUorgsBody: document.getElementById('table-config-uorgs-body'),
+    configUorgSearch: document.getElementById('config-uorg-search'),
+    configUorgFiltroUg: document.getElementById('config-uorg-filtro-ug'),
+
+    // Gestão de Ciclos
+    btnNovoCiclo: document.getElementById('btn-novo-ciclo'),
+    formCiclo: document.getElementById('form-ciclo'),
+    cicloId: document.getElementById('ciclo-id'),
+    formCicloTitle: document.getElementById('form-ciclo-title'),
+    cicloAno: document.getElementById('ciclo-ano'),
+    cicloProcMae: document.getElementById('ciclo-proc-mae'),
+    cicloDataCautela: document.getElementById('ciclo-data-cautela'),
+    cicloDataFinal: document.getElementById('ciclo-data-final'),
+    cicloStatus: document.getElementById('ciclo-status'),
+    cicloDefinirAtivo: document.getElementById('ciclo-definir-ativo'),
+    btnCancelarCiclo: document.getElementById('btn-cancelar-ciclo'),
+    tableCiclosBody: document.getElementById('table-ciclos-body'),
+
+    // Gestão do Cronograma
+    btnNovaEtapa: document.getElementById('btn-nova-etapa'),
+    formEtapaCronograma: document.getElementById('form-etapa-cronograma'),
+    formEtapaId: document.getElementById('form-etapa-id'),
+    formEtapaTitle: document.getElementById('form-etapa-title'),
+    etapaData: document.getElementById('etapa-data'),
+    etapaResponsavel: document.getElementById('etapa-responsavel'),
+    etapaAcao: document.getElementById('etapa-acao'),
+    etapaStatus: document.getElementById('etapa-status'),
+    btnCancelarEtapa: document.getElementById('btn-cancelar-etapa'),
+    tableCronogramaBody: document.getElementById('table-cronograma-body'),
 
     // KPIs Dashboard
     kpiTotal: document.getElementById('kpi-total-val'),
@@ -101,12 +175,21 @@ document.addEventListener('DOMContentLoaded', () => {
     btnSalvarGestao: document.getElementById('btn-salvar-gestao'),
     btnCancelarGestao: document.getElementById('btn-cancelar-gestao'),
 
-    // Modal
+    // Modal Detalhes
     modalOverlay: document.getElementById('modal-overlay'),
     modalTitle: document.getElementById('modal-title'),
     modalSubtitle: document.getElementById('modal-subtitle'),
     modalBody: document.getElementById('modal-body'),
     modalClose: document.getElementById('modal-close'),
+
+    // Modal de Confirmação Amigável
+    confirmOverlay: document.getElementById('confirm-modal-overlay'),
+    confirmIcon: document.getElementById('confirm-modal-icon'),
+    confirmTitle: document.getElementById('confirm-modal-title'),
+    confirmMessage: document.getElementById('confirm-modal-message'),
+    confirmDetails: document.getElementById('confirm-modal-details'),
+    confirmBtnCancel: document.getElementById('confirm-modal-btn-cancel'),
+    confirmBtnConfirm: document.getElementById('confirm-modal-btn-confirm'),
 
     // Toast
     toastContainer: document.getElementById('toast-container')
@@ -114,10 +197,132 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Inicialização
   function init() {
+    // 1. Carga inicial rápida com dados locais
     renderCronograma();
     populateUgSelects();
+    preencherSelectsConfig();
+    renderCiclosTable();
+    renderCronogramaTable();
     attachEvents();
     applyFilters();
+
+    // 2. Sincronização em tempo real com as planilhas oficiais (tb_ug, tb_inventario_acompanhamento, tb_ciclo_inventario, etc.)
+    carregarDadosDoBancoGoogle();
+  }
+
+  function sincronizarInterfaceComDados() {
+    renderCronograma();
+    populateUgSelects();
+    preencherSelectsConfig();
+    renderCiclosTable();
+    renderCronogramaTable();
+    populateGestaoUorgSelect();
+    applyFilters();
+    if (state.currentConfigSubtab === 'ugs') renderConfigUgsTable();
+    if (state.currentConfigSubtab === 'uorgs') renderConfigUorgsTable();
+  }
+
+  function carregarDadosDoBancoGoogle() {
+    if (typeof google === 'undefined' || !google.script || !google.script.run) {
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler((res) => {
+        if (!res || res.status !== 'success') {
+          console.warn('Sincronização com o Google Sheets retornou aviso:', res);
+          return;
+        }
+
+        if (Array.isArray(res.inventario) && res.inventario.length > 0) {
+          state.allData = res.inventario;
+        }
+        if (Array.isArray(res.ugs) && res.ugs.length > 0) {
+          state.ugs = res.ugs;
+        }
+        if (Array.isArray(res.ciclos) && res.ciclos.length > 0) {
+          state.ciclos = res.ciclos;
+        }
+        if (res.ciclo) {
+          state.ciclo = res.ciclo;
+        }
+        if (Array.isArray(res.cronograma) && res.cronograma.length > 0) {
+          state.cronograma = res.cronograma;
+        }
+
+        sincronizarInterfaceComDados();
+      })
+      .withFailureHandler((err) => {
+        console.error('Falha na comunicação de sincronização com o Google Sheets:', err);
+      })
+      .obterDadosCompletos();
+  }
+
+  /**
+   * Formata datas para o padrão amigável brasileiro (DD/MM/AAAA)
+   */
+  function formatarDataPtBr(valor) {
+    if (!valor) return '-';
+    if (typeof valor !== 'string') {
+      if (valor instanceof Date) {
+        const dia = String(valor.getDate()).padStart(2, '0');
+        const mes = String(valor.getMonth() + 1).padStart(2, '0');
+        const ano = valor.getFullYear();
+        return `${dia}/${mes}/${ano}`;
+      }
+      valor = String(valor);
+    }
+
+    valor = valor.trim();
+    if (!valor) return '-';
+
+    // Se já for DD/MM/AAAA ou período como '01-02/09/2026' ou '27-28/08/2026'
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(valor) || /^\d{2}-\d{2}\/\d{2}\/\d{4}$/.test(valor)) {
+      return valor;
+    }
+
+    // Se contiver GMT ou Horário Padrão ou formato do Date.toString() (ex: 'Tue Jul 28 2026...')
+    if (valor.includes('GMT') || valor.includes('Horário') || /^[A-Za-z]{3}\s+[A-Za-z]{3}/.test(valor)) {
+      const parsed = new Date(valor);
+      if (!isNaN(parsed.getTime())) {
+        const dia = String(parsed.getDate()).padStart(2, '0');
+        const mes = String(parsed.getMonth() + 1).padStart(2, '0');
+        const ano = parsed.getFullYear();
+        return `${dia}/${mes}/${ano}`;
+      }
+    }
+
+    // Se for formato ISO YYYY-MM-DD (ex: '2026-08-31' ou '2026-08-31T...')
+    const matchIso = valor.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (matchIso) {
+      return `${matchIso[3]}/${matchIso[2]}/${matchIso[1]}`;
+    }
+
+    return valor;
+  }
+
+  function converterParaInputDate(valor) {
+    if (!valor) return '';
+    if (valor instanceof Date) {
+      return valor.toISOString().split('T')[0];
+    }
+    const str = String(valor).trim();
+    const matchPtBr = str.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (matchPtBr) {
+      return `${matchPtBr[3]}-${matchPtBr[2]}-${matchPtBr[1]}`;
+    }
+    const matchIso = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (matchIso) {
+      return `${matchIso[1]}-${matchIso[2]}-${matchIso[3]}`;
+    }
+    const parsed = new Date(str);
+    if (!isNaN(parsed.getTime())) {
+      const y = parsed.getFullYear();
+      const m = String(parsed.getMonth() + 1).padStart(2, '0');
+      const d = String(parsed.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+    return '';
   }
 
   function renderCronograma() {
@@ -127,10 +332,11 @@ document.addEventListener('DOMContentLoaded', () => {
       el.className = `timeline-item ${item.status}`;
       const statusIcon = item.status === 'concluido' ? '✓' : (item.status === 'em_andamento' ? '⏳' : '📅');
       const statusLabel = item.status === 'concluido' ? 'Concluído' : (item.status === 'em_andamento' ? 'Em curso' : 'Previsto');
+      const dataFormatada = formatarDataPtBr(item.label || item.data);
 
       el.innerHTML = `
         <div class="timeline-date">
-          <span>${item.label}</span>
+          <span>${dataFormatada}</span>
           <span title="${statusLabel}">${statusIcon}</span>
         </div>
         <div class="timeline-acao" title="${item.acao}">${item.acao}</div>
@@ -166,6 +372,53 @@ document.addEventListener('DOMContentLoaded', () => {
     // Alternância de Abas (MVC Views)
     elements.tabDashboard.addEventListener('click', () => switchView('dashboard'));
     elements.tabGestao.addEventListener('click', () => switchView('gestao'));
+    elements.tabConfig.addEventListener('click', () => switchView('config'));
+
+    // Sub-abas de Configuração
+    elements.subtabUgs.addEventListener('click', () => switchConfigSubtab('ugs'));
+    elements.subtabUorgs.addEventListener('click', () => switchConfigSubtab('uorgs'));
+    elements.subtabCiclo.addEventListener('click', () => switchConfigSubtab('ciclo'));
+    elements.subtabCronograma.addEventListener('click', () => switchConfigSubtab('cronograma'));
+
+    // Formulário de Cadastro de UGs
+    elements.btnNovaUg.addEventListener('click', () => abrirFormNovaUg());
+    elements.btnCancelarUg.addEventListener('click', () => fecharFormNovaUg());
+    elements.formUgCadastro.addEventListener('submit', (e) => {
+      e.preventDefault();
+      salvarUgAction();
+    });
+
+    // Formulário e Busca de UORGs (Configuração)
+    elements.btnNovaUorgModal.addEventListener('click', () => abrirFormNovaUorg());
+    elements.btnCancelarNovaUorg.addEventListener('click', () => fecharFormNovaUorg());
+    elements.formNovaUorg.addEventListener('submit', (e) => {
+      e.preventDefault();
+      salvarNovaUorgAction();
+    });
+    elements.configUorgSearch.addEventListener('input', (e) => {
+      state.configUorgSearch = e.target.value.toLowerCase().trim();
+      renderConfigUorgsTable();
+    });
+    elements.configUorgFiltroUg.addEventListener('change', (e) => {
+      state.configUorgFiltroUg = e.target.value;
+      renderConfigUorgsTable();
+    });
+
+    // Gestão de Ciclos (Novo e Cancelar)
+    elements.btnNovoCiclo.addEventListener('click', () => abrirFormCiclo());
+    elements.btnCancelarCiclo.addEventListener('click', () => fecharFormCiclo());
+    elements.formCiclo.addEventListener('submit', (e) => {
+      e.preventDefault();
+      salvarCicloAction();
+    });
+
+    // Gestão de Etapas do Cronograma (Nova, Cancelar e Salvar)
+    elements.btnNovaEtapa.addEventListener('click', () => abrirFormEtapaCronograma());
+    elements.btnCancelarEtapa.addEventListener('click', () => fecharFormEtapaCronograma());
+    elements.formEtapaCronograma.addEventListener('submit', (e) => {
+      e.preventDefault();
+      salvarEtapaCronogramaAction();
+    });
 
     // Filtros Dashboard
     elements.searchInput.addEventListener('input', (e) => {
@@ -232,16 +485,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function switchView(viewName) {
     state.currentView = viewName;
-    if (viewName === 'dashboard') {
-      elements.tabDashboard.classList.add('active');
-      elements.tabGestao.classList.remove('active');
-      elements.viewDashboard.classList.add('active');
-      elements.viewGestao.classList.remove('active');
-    } else {
-      elements.tabDashboard.classList.remove('active');
-      elements.tabGestao.classList.add('active');
-      elements.viewDashboard.classList.remove('active');
-      elements.viewGestao.classList.add('active');
+    elements.tabDashboard.classList.toggle('active', viewName === 'dashboard');
+    elements.tabGestao.classList.toggle('active', viewName === 'gestao');
+    elements.tabConfig.classList.toggle('active', viewName === 'config');
+
+    elements.viewDashboard.classList.toggle('active', viewName === 'dashboard');
+    elements.viewGestao.classList.toggle('active', viewName === 'gestao');
+    elements.viewConfig.classList.toggle('active', viewName === 'config');
+
+    if (viewName === 'config') {
+      renderConfigView();
     }
   }
 
@@ -249,7 +502,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentUg = resetToAll ? 'TODAS' : elements.ugSelect.value;
     elements.ugSelect.innerHTML = '<option value="TODAS">Todas as Diretorias/UGs</option>';
     
-    state.ugs.forEach(ug => {
+    state.ugs.filter(u => u.ativo !== 'N').forEach(ug => {
       let include = true;
       if (grupo === 'DIRETORIA' && ug.tipo !== 'DIRETORIA') include = false;
       if (grupo === 'PENITENCIARIA_FEDERAL' && ug.tipo !== 'PENITENCIARIA_FEDERAL') include = false;
@@ -311,9 +564,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function applyFilters() {
     state.filteredData = state.allData.filter(item => {
+      // O Dashboard considera exclusivamente UORGs e UGs ativas!
+      if (item.ativo === 'N') return false;
+
+      // Se a UG pai estiver inativa, também não exibe no dashboard
+      const ugPai = state.ugs.find(u => u.sigla === item.ug_sigla);
+      if (ugPai && ugPai.ativo === 'N') return false;
+
       if (state.filters.search) {
         const term = state.filters.search;
-        const matchesUorg = item.uorg_codigo && item.uorg_codigo.toLowerCase().includes(term);
+        const matchesUorg = item.uorg_codigo && item.uorg_codigo.toString().toLowerCase().includes(term);
         const matchesSigla = item.uorg_sigla && item.uorg_sigla.toLowerCase().includes(term);
         const matchesProc = item.processo_sei && item.processo_sei.toLowerCase().includes(term);
         const matchesUg = item.ug_sigla && item.ug_sigla.toLowerCase().includes(term);
@@ -348,6 +608,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const restanteParaProcessar = total - processado;
 
     elements.kpiTotal.textContent = total;
+
+    // Atualiza o subtítulo com a quantidade de UGs ativas
+    const ugsAtivasCount = state.ugs.filter(u => u.ativo !== 'N').length;
+    const elTotalSub = document.getElementById('kpi-total-sub');
+    if (elTotalSub) {
+      elTotalSub.textContent = `Unidades em ${ugsAtivasCount} Unidades Gestoras`;
+    }
+
     elements.kpiNaoIniciadoVal.textContent = naoIniciado;
     elements.kpiNaoIniciadoPct.textContent = `${pctNaoIniciado}%`;
 
@@ -374,7 +642,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (elements.ugGridPf) elements.ugGridPf.innerHTML = '';
 
     const ugGroups = {};
-    state.ugs.forEach(ug => {
+    const ugsAtivas = state.ugs.filter(ug => ug.ativo !== 'N');
+    ugsAtivas.forEach(ug => {
       ugGroups[ug.sigla] = { meta: ug, total: 0, naoIniciado: 0, emAndamento: 0, processado: 0 };
     });
 
@@ -624,7 +893,109 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 4000);
   }
 
-  // Modal
+  /**
+   * Exibe um modal de confirmação amigável e retorna uma Promise que resolve em true (confirmado) ou false (cancelado).
+   * @param {Object} options
+   * @param {string} options.title - Título do diálogo
+   * @param {string} options.message - Mensagem principal
+   * @param {string} [options.details] - Bloco de detalhes / contexto adicional
+   * @param {string} [options.confirmText] - Rótulo do botão de confirmação
+   * @param {string} [options.cancelText] - Rótulo do botão de cancelamento
+   * @param {string} [options.type] - 'danger' | 'warning' | 'info'
+   * @returns {Promise<boolean>}
+   */
+  function showConfirmDialog({
+    title = 'Confirmação',
+    message = 'Deseja continuar com esta operação?',
+    details = '',
+    confirmText = 'Confirmar',
+    cancelText = 'Cancelar',
+    type = 'danger'
+  } = {}) {
+    return new Promise((resolve) => {
+      if (!elements.confirmOverlay) {
+        resolve(window.confirm(message));
+        return;
+      }
+
+      elements.confirmTitle.textContent = title;
+      elements.confirmMessage.textContent = message;
+
+      if (details) {
+        elements.confirmDetails.innerHTML = details;
+        elements.confirmDetails.style.display = 'block';
+      } else {
+        elements.confirmDetails.style.display = 'none';
+        elements.confirmDetails.innerHTML = '';
+      }
+
+      elements.confirmBtnConfirm.textContent = confirmText;
+      elements.confirmBtnCancel.textContent = cancelText;
+
+      if (type === 'danger') {
+        elements.confirmIcon.className = 'confirm-modal-icon danger';
+        elements.confirmIcon.innerHTML = `
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            <line x1="10" y1="11" x2="10" y2="17"></line>
+            <line x1="14" y1="11" x2="14" y2="17"></line>
+          </svg>
+        `;
+        elements.confirmBtnConfirm.className = 'confirm-btn-confirm btn-danger';
+      } else if (type === 'warning') {
+        elements.confirmIcon.className = 'confirm-modal-icon warning';
+        elements.confirmIcon.innerHTML = `
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        `;
+        elements.confirmBtnConfirm.className = 'confirm-btn-confirm btn-warning';
+      } else {
+        elements.confirmIcon.className = 'confirm-modal-icon info';
+        elements.confirmIcon.innerHTML = `
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+        `;
+        elements.confirmBtnConfirm.className = 'confirm-btn-confirm btn-primary';
+      }
+
+      let isClosed = false;
+      const cleanup = (result) => {
+        if (isClosed) return;
+        isClosed = true;
+        elements.confirmOverlay.classList.remove('active');
+        elements.confirmBtnConfirm.removeEventListener('click', onConfirm);
+        elements.confirmBtnCancel.removeEventListener('click', onCancel);
+        elements.confirmOverlay.removeEventListener('click', onBackdropClick);
+        document.removeEventListener('keydown', onKeyDown);
+        resolve(result);
+      };
+
+      const onConfirm = () => cleanup(true);
+      const onCancel = () => cleanup(false);
+      const onBackdropClick = (e) => {
+        if (e.target === elements.confirmOverlay) cleanup(false);
+      };
+      const onKeyDown = (e) => {
+        if (e.key === 'Escape') cleanup(false);
+      };
+
+      elements.confirmBtnConfirm.addEventListener('click', onConfirm);
+      elements.confirmBtnCancel.addEventListener('click', onCancel);
+      elements.confirmOverlay.addEventListener('click', onBackdropClick);
+      document.addEventListener('keydown', onKeyDown);
+
+      elements.confirmOverlay.classList.add('active');
+      elements.confirmBtnCancel.focus();
+    });
+  }
+
+  // Modal Detalhes
   function openModal(item) {
     elements.modalTitle.textContent = `${item.ug_sigla} — ${item.uorg_sigla}`;
     elements.modalSubtitle.textContent = `Código UORG: ${item.uorg_codigo} | UG: ${item.ug_nome}`;
@@ -704,6 +1075,840 @@ document.addEventListener('DOMContentLoaded', () => {
     a.download = `inventario_senappen_filtrado_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  // ============================================================================
+  // MÓDULO 3: ADMINISTRAÇÃO E CONFIGURAÇÕES ESTRUTURAIS (MVC)
+  // ============================================================================
+
+  function switchConfigSubtab(subtabName) {
+    state.currentConfigSubtab = subtabName;
+    elements.subtabUgs.classList.toggle('active', subtabName === 'ugs');
+    elements.subtabUorgs.classList.toggle('active', subtabName === 'uorgs');
+    elements.subtabCiclo.classList.toggle('active', subtabName === 'ciclo');
+    elements.subtabCronograma.classList.toggle('active', subtabName === 'cronograma');
+
+    elements.paneUgs.classList.toggle('active', subtabName === 'ugs');
+    elements.paneUorgs.classList.toggle('active', subtabName === 'uorgs');
+    elements.paneCiclo.classList.toggle('active', subtabName === 'ciclo');
+    elements.paneCronograma.classList.toggle('active', subtabName === 'cronograma');
+
+    if (subtabName === 'ugs') renderConfigUgsTable();
+    else if (subtabName === 'uorgs') renderConfigUorgsTable();
+    else if (subtabName === 'ciclo') renderCiclosTable();
+    else if (subtabName === 'cronograma') renderCronogramaTable();
+  }
+
+  function renderConfigView() {
+    preencherSelectsConfig();
+    switchConfigSubtab(state.currentConfigSubtab || 'ugs');
+  }
+
+  function preencherSelectsConfig() {
+    // Select de UG no form de Nova UORG
+    elements.novaUorgUg.innerHTML = '<option value="">-- Selecione a UG correspondente --</option>';
+    elements.configUorgFiltroUg.innerHTML = '<option value="TODAS">Todas as UGs</option>';
+
+    state.ugs.forEach(ug => {
+      const opt1 = document.createElement('option');
+      opt1.value = ug.sigla;
+      opt1.textContent = `${ug.sigla} — ${ug.nome}`;
+      elements.novaUorgUg.appendChild(opt1);
+
+      const opt2 = document.createElement('option');
+      opt2.value = ug.sigla;
+      opt2.textContent = `${ug.sigla} — ${ug.nome}`;
+      elements.configUorgFiltroUg.appendChild(opt2);
+    });
+  }
+
+  // --- Sub-aba 1: UGs ---
+  function renderConfigUgsTable() {
+    elements.tableUgsBody.innerHTML = '';
+    state.ugs.forEach(ug => {
+      const tr = document.createElement('tr');
+      const tipoBadge = ug.tipo === 'PENITENCIARIA_FEDERAL'
+        ? '<span class="badge-status-pill badge-spf">SPF (Federal)</span>'
+        : '<span class="badge-status-pill badge-sede">Sede (DIREX)</span>';
+
+      const procHtml = ug.processo_sei 
+        ? `<span class="sei-link" style="text-decoration:none">${ug.processo_sei}</span>`
+        : '<span class="sei-empty">Pendente</span>';
+
+      tr.innerHTML = `
+        <td style="font-family: var(--font-mono); font-weight: 600">${ug.codigo_siafi || ug.codigo || '-'}</td>
+        <td style="font-weight: 700; color: var(--primary)">${ug.sigla}</td>
+        <td style="font-weight: 600">${ug.nome}</td>
+        <td>${tipoBadge}</td>
+        <td>${procHtml}</td>
+        <td>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn-action btn-edit-ug" data-sigla="${ug.sigla}" style="padding: 4px 10px; font-size: 12px">
+              ✏️ Editar
+            </button>
+            <button class="btn-action btn-delete-ug" data-sigla="${ug.sigla}" style="padding: 4px 10px; font-size: 12px; color: var(--danger);">
+              🗑️ Excluir
+            </button>
+          </div>
+        </td>
+      `;
+
+      tr.querySelector('.btn-edit-ug').addEventListener('click', () => {
+        abrirFormNovaUg(ug);
+      });
+
+      tr.querySelector('.btn-delete-ug').addEventListener('click', () => {
+        excluirUgAction(ug.sigla);
+      });
+
+      elements.tableUgsBody.appendChild(tr);
+    });
+  }
+
+  function abrirFormNovaUg(ug = null) {
+    elements.formUgCadastro.style.display = 'block';
+    if (ug) {
+      elements.formUgTitle.textContent = `Editar Unidade Gestora: ${ug.sigla}`;
+      elements.formUgId.value = ug.sigla;
+      elements.formUgSigla.value = ug.sigla;
+      elements.formUgSigla.disabled = true;
+      elements.formUgCodigo.value = ug.codigo_siafi || ug.codigo || '';
+      elements.formUgNome.value = ug.nome || '';
+      elements.formUgTipo.value = ug.tipo || 'DIRETORIA';
+      elements.formUgProc.value = ug.processo_sei || '';
+      elements.formUgPortaria.value = ug.portaria_designacao || ug.portaria_geral || '';
+    } else {
+      elements.formUgTitle.textContent = 'Cadastrar Nova Unidade Gestora';
+      elements.formUgCadastro.reset();
+      elements.formUgId.value = '';
+      elements.formUgSigla.disabled = false;
+    }
+    elements.formUgCadastro.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function fecharFormNovaUg() {
+    elements.formUgCadastro.reset();
+    elements.formUgId.value = '';
+    elements.formUgSigla.disabled = false;
+    elements.formUgCadastro.style.display = 'none';
+  }
+
+  function salvarUgAction() {
+    const isEdicao = !!elements.formUgId.value;
+    const payload = {
+      sigla: elements.formUgSigla.value.trim().toUpperCase(),
+      codigo_siafi: elements.formUgCodigo.value.trim(),
+      nome: elements.formUgNome.value.trim().toUpperCase(),
+      tipo: elements.formUgTipo.value,
+      processo_sei: elements.formUgProc.value.trim(),
+      portaria_designacao: elements.formUgPortaria.value.trim()
+    };
+
+    if (!payload.sigla || !payload.nome) {
+      showToast('Preencha a Sigla e o Nome da UG!', 'error');
+      return;
+    }
+
+    const btnSalvar = document.getElementById('btn-salvar-ug');
+    btnSalvar.disabled = true;
+    btnSalvar.textContent = 'Salvando UG...';
+
+    const aplicarSucesso = (dados) => {
+      btnSalvar.disabled = false;
+      btnSalvar.textContent = '💾 Salvar UG';
+      const idx = state.ugs.findIndex(u => u.sigla === payload.sigla);
+      if (idx >= 0) {
+        state.ugs[idx] = { ...state.ugs[idx], ...payload };
+      } else {
+        state.ugs.push(payload);
+      }
+      populateUgSelects();
+      preencherSelectsConfig();
+      renderConfigUgsTable();
+      renderUgCards();
+      fecharFormNovaUg();
+      showToast(isEdicao ? `✓ Unidade Gestora ${payload.sigla} atualizada com sucesso!` : `✓ Unidade Gestora ${payload.sigla} cadastrada com sucesso!`, 'success');
+      carregarDadosDoBancoGoogle();
+    };
+
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (res && res.status === 'success') {
+            aplicarSucesso(res.dados || payload);
+          } else {
+            btnSalvar.disabled = false;
+            btnSalvar.textContent = '💾 Salvar UG';
+            showToast('Erro ao salvar UG: ' + (res.mensagem || 'Falha'), 'error');
+          }
+        })
+        .withFailureHandler((err) => {
+          btnSalvar.disabled = false;
+          btnSalvar.textContent = '💾 Salvar UG';
+          showToast('Erro de conexão: ' + err.toString(), 'error');
+        })
+        .salvarUg(payload);
+    } else {
+      setTimeout(() => aplicarSucesso(payload), 300);
+    }
+  }
+
+  async function excluirUgAction(sigla) {
+    const vinculadas = state.allData.filter(d => d.ug_sigla === sigla).length;
+    const confirmed = await showConfirmDialog({
+      title: 'Excluir Unidade Gestora',
+      message: vinculadas > 0
+        ? `Atenção: Existem ${vinculadas} UORGs vinculadas a esta UG. Deseja realmente excluir a Unidade Gestora?`
+        : `Deseja realmente remover esta Unidade Gestora do cadastro de UGs?`,
+      details: `<strong>Unidade:</strong> ${sigla}` + (vinculadas > 0 ? `<br><span style="color: #dc2626; font-weight: 600;">⚠️ UORGs associadas: ${vinculadas}</span>` : ''),
+      confirmText: 'Sim, Excluir UG',
+      cancelText: 'Cancelar',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
+
+    const aplicarExclusao = () => {
+      state.ugs = state.ugs.filter(u => u.sigla !== sigla);
+      populateUgSelects();
+      preencherSelectsConfig();
+      renderConfigUgsTable();
+      renderUgCards();
+      applyFilters();
+      showToast(`✓ Unidade Gestora ${sigla} excluída com sucesso!`, 'info');
+      carregarDadosDoBancoGoogle();
+    };
+
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (res && res.status === 'success') {
+            aplicarExclusao();
+          } else {
+            showToast('Erro ao excluir UG: ' + (res.mensagem || 'Falha'), 'error');
+          }
+        })
+        .withFailureHandler((err) => {
+          showToast('Erro de comunicação: ' + err.toString(), 'error');
+        })
+        .excluirUg(sigla);
+    } else {
+      aplicarExclusao();
+    }
+  }
+
+  // --- Sub-aba 2: UORGs & Ativação ---
+  function renderConfigUorgsTable() {
+    elements.tableConfigUorgsBody.innerHTML = '';
+    const termo = state.configUorgSearch;
+    const filtroUg = state.configUorgFiltroUg;
+
+    // Ordenação padrão estrita: ID do menor para o maior (crescente: #1, #2, ... #226)
+    const lista = state.allData
+      .filter(item => {
+        const matchSearch = !termo || 
+          (item.uorg_sigla && item.uorg_sigla.toLowerCase().includes(termo)) ||
+          (item.uorg_codigo && item.uorg_codigo.toString().includes(termo)) ||
+          (item.ug_sigla && item.ug_sigla.toLowerCase().includes(termo));
+
+        const matchUg = filtroUg === 'TODAS' || item.ug_sigla === filtroUg;
+        return matchSearch && matchUg;
+      })
+      .sort((a, b) => (parseInt(a.id, 10) || 0) - (parseInt(b.id, 10) || 0));
+
+    lista.forEach(item => {
+      const tr = document.createElement('tr');
+      const isAtivo = item.ativo !== 'N';
+      const situacaoBadge = isAtivo 
+        ? '<span class="badge-status-pill badge-ativo">✓ Ativo</span>' 
+        : '<span class="badge-status-pill badge-inativo">✕ Inativo</span>';
+
+      const statusClass = item.status_simplificado === 'Processado' ? 'processado' 
+                        : (item.status_simplificado === 'Em andamento' ? 'em-andamento' : 'nao-iniciado');
+
+      tr.innerHTML = `
+        <td style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted)">#${item.id}</td>
+        <td style="font-weight: 700; color: var(--primary)">${item.ug_sigla}</td>
+        <td style="font-family: var(--font-mono); font-weight: 600">${item.uorg_codigo || '-'}</td>
+        <td style="font-weight: 600">${item.uorg_sigla}</td>
+        <td>
+          <span class="status-pill ${statusClass}" style="padding: 2px 8px; font-size: 11px">
+            <span class="legend-dot ${statusClass}"></span>
+            ${item.status_simplificado}
+          </span>
+        </td>
+        <td>${situacaoBadge}</td>
+        <td>
+          <div style="display: flex; gap: 4px;">
+            <button class="btn-action btn-toggle-uorg" data-id="${item.id}" data-ativo="${isAtivo ? 'S' : 'N'}" style="padding: 3px 6px; font-size: 11px; ${isAtivo ? 'color: var(--danger);' : 'color: var(--success);'}">
+              ${isAtivo ? 'Desativar' : 'Reativar'}
+            </button>
+            <button class="btn-action btn-edit-uorg-conf" data-id="${item.id}" style="padding: 3px 6px; font-size: 11px">
+              ✏️ Gerenciar
+            </button>
+            <button class="btn-action btn-delete-uorg" data-id="${item.id}" style="padding: 3px 6px; font-size: 11px; color: var(--danger);">
+              🗑️ Excluir
+            </button>
+          </div>
+        </td>
+      `;
+
+      tr.querySelector('.btn-toggle-uorg').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const novoStatus = isAtivo ? 'N' : 'S';
+        toggleUorgAction(item.id, novoStatus);
+      });
+
+      tr.querySelector('.btn-edit-uorg-conf').addEventListener('click', (e) => {
+        e.stopPropagation();
+        abrirEdicaoNoModuloGestao(item.id);
+      });
+
+      tr.querySelector('.btn-delete-uorg').addEventListener('click', (e) => {
+        e.stopPropagation();
+        excluirUorgAction(item.id, item.uorg_sigla);
+      });
+
+      elements.tableConfigUorgsBody.appendChild(tr);
+    });
+  }
+
+  function abrirFormNovaUorg() {
+    elements.formNovaUorg.reset();
+    elements.formNovaUorg.style.display = 'block';
+    elements.formNovaUorg.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function fecharFormNovaUorg() {
+    elements.formNovaUorg.reset();
+    elements.formNovaUorg.style.display = 'none';
+  }
+
+  function salvarNovaUorgAction() {
+    const ugSigla = elements.novaUorgUg.value;
+    const codigo = elements.novaUorgCodigo.value.trim();
+    const sigla = elements.novaUorgSigla.value.trim().toUpperCase();
+    const processoSei = elements.novaUorgProc.value.trim();
+
+    if (!ugSigla || !sigla) {
+      showToast('Selecione a UG e informe a Sigla da nova UORG!', 'error');
+      return;
+    }
+
+    const ugObj = state.ugs.find(u => u.sigla === ugSigla);
+    const payload = {
+      ug_sigla: ugSigla,
+      ug_nome: ugObj ? ugObj.nome : ugSigla,
+      uorg_codigo: codigo ? parseInt(codigo, 10) : '',
+      uorg_sigla: sigla,
+      processo_sei: processoSei
+    };
+
+    const btn = document.getElementById('btn-salvar-nova-uorg');
+    btn.disabled = true;
+    btn.textContent = 'Cadastrando...';
+
+    const aplicarSucesso = (novaUorg) => {
+      btn.disabled = false;
+      btn.textContent = '💾 Confirmar Cadastro da UORG';
+      const novoId = novaUorg.id || (Math.max(...state.allData.map(d => d.id || 0)) + 1);
+      const objetoCompleto = {
+        id: novoId,
+        ug_sigla: payload.ug_sigla,
+        ug_nome: payload.ug_nome,
+        uorg_codigo: payload.uorg_codigo,
+        uorg_sigla: payload.uorg_sigla,
+        processo_sei: payload.processo_sei || '',
+        processo_sei_link: '',
+        bens_acautelados_doc: '',
+        relatorio_uorg: '',
+        relatorio_final_ug: '',
+        status_simplificado: 'Não iniciado',
+        ativo: 'S'
+      };
+      state.allData.push(objetoCompleto);
+      state.allData.sort((a, b) => (parseInt(a.id, 10) || 0) - (parseInt(b.id, 10) || 0));
+      applyFilters();
+      populateGestaoUorgSelect();
+      renderConfigUorgsTable();
+      fecharFormNovaUorg();
+      showToast(`✓ UORG ${sigla} cadastrada com sucesso!`, 'success');
+      carregarDadosDoBancoGoogle();
+    };
+
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (res && res.status === 'success') {
+            aplicarSucesso(res.dados || payload);
+          } else {
+            btn.disabled = false;
+            btn.textContent = '💾 Confirmar Cadastro da UORG';
+            showToast('Erro: ' + (res.mensagem || 'Falha ao cadastrar'), 'error');
+          }
+        })
+        .withFailureHandler((err) => {
+          btn.disabled = false;
+          btn.textContent = '💾 Confirmar Cadastro da UORG';
+          showToast('Erro de comunicação: ' + err.toString(), 'error');
+        })
+        .cadastrarUorg(payload);
+    } else {
+      setTimeout(() => aplicarSucesso(payload), 300);
+    }
+  }
+
+  function toggleUorgAction(id, novoStatus) {
+    const item = state.allData.find(d => d.id === id);
+    if (!item) return;
+
+    const aplicar = () => {
+      item.ativo = novoStatus;
+      renderConfigUorgsTable();
+      applyFilters();
+      showToast(novoStatus === 'S' ? `✓ UORG ${item.uorg_sigla} reativada!` : `UORG ${item.uorg_sigla} desativada.`, 'info');
+      carregarDadosDoBancoGoogle();
+    };
+
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (res && res.status === 'success') {
+            aplicar();
+          } else {
+            showToast('Erro ao alternar status: ' + (res.mensagem || 'Falha'), 'error');
+          }
+        })
+        .withFailureHandler((err) => {
+          showToast('Erro de comunicação: ' + err.toString(), 'error');
+        })
+        .toggleUorg(id, novoStatus);
+    } else {
+      aplicar();
+    }
+  }
+
+  async function excluirUorgAction(id, sigla) {
+    const item = state.allData.find(d => d.id === id);
+    const confirmed = await showConfirmDialog({
+      title: 'Excluir Unidade Organizacional (UORG)',
+      message: 'Tem certeza que deseja excluir permanentemente esta UORG? O setor será removido da base de inventário.',
+      details: `<strong>UORG:</strong> ${sigla} (ID #${id})` + (item && item.ug_sigla ? `<br><strong>UG Vinculada:</strong> ${item.ug_sigla}` : ''),
+      confirmText: 'Sim, Excluir UORG',
+      cancelText: 'Cancelar',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
+
+    const aplicarExclusao = () => {
+      state.allData = state.allData.filter(d => d.id !== id);
+      applyFilters();
+      populateGestaoUorgSelect();
+      renderConfigUorgsTable();
+      showToast(`✓ UORG ${sigla} excluída com sucesso!`, 'info');
+      carregarDadosDoBancoGoogle();
+    };
+
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (res && res.status === 'success') {
+            aplicarExclusao();
+          } else {
+            showToast('Erro ao excluir UORG: ' + (res.mensagem || 'Falha'), 'error');
+          }
+        })
+        .withFailureHandler((err) => {
+          showToast('Erro de comunicação: ' + err.toString(), 'error');
+        })
+        .excluirUorg(id);
+    } else {
+      aplicarExclusao();
+    }
+  }
+
+  // --- Sub-aba 3: Gestão de Exercícios & Ciclos ---
+  function renderCiclosTable() {
+    elements.tableCiclosBody.innerHTML = '';
+    state.ciclos.forEach(c => {
+      const tr = document.createElement('tr');
+      const isAtivo = c.ativo === 'S';
+      const situacaoBadge = isAtivo
+        ? '<span class="badge-status-pill badge-ativo">✓ Vigente / Ativo</span>'
+        : '<span class="badge-status-pill badge-inativo">Histórico / Inativo</span>';
+
+      tr.innerHTML = `
+        <td style="font-weight: 700; color: var(--primary); font-size: 15px">${c.ano_exercicio || c.ano}</td>
+        <td style="font-weight: 500">${c.processo_sei_mae || c.processo_mae || '-'}</td>
+        <td style="white-space: nowrap">${formatarDataPtBr(c.data_limite_cautela)}</td>
+        <td style="white-space: nowrap">${formatarDataPtBr(c.data_limite_final)}</td>
+        <td><span class="badge-status-pill badge-sede">${c.status_ciclo || 'EM_ANDAMENTO'}</span></td>
+        <td>${situacaoBadge}</td>
+        <td>
+          <div style="display: flex; gap: 4px;">
+            <button class="btn-action btn-edit-ciclo" data-ano="${c.ano_exercicio || c.ano}" style="padding: 3px 8px; font-size: 11px">
+              ✏️ Editar
+            </button>
+            ${!isAtivo ? `
+              <button class="btn-action btn-ativar-ciclo" data-ano="${c.ano_exercicio || c.ano}" style="padding: 3px 8px; font-size: 11px; color: var(--success)">
+                ⚡ Tornar Ativo
+              </button>
+              <button class="btn-action btn-delete-ciclo" data-ano="${c.ano_exercicio || c.ano}" style="padding: 3px 8px; font-size: 11px; color: var(--danger)">
+                🗑️ Excluir
+              </button>
+            ` : ''}
+          </div>
+        </td>
+      `;
+
+      tr.querySelector('.btn-edit-ciclo').addEventListener('click', () => {
+        abrirFormCiclo(c);
+      });
+
+      const btnAtivar = tr.querySelector('.btn-ativar-ciclo');
+      if (btnAtivar) {
+        btnAtivar.addEventListener('click', () => {
+          ativarCicloAction(c.ano_exercicio || c.ano);
+        });
+      }
+
+      const btnDelete = tr.querySelector('.btn-delete-ciclo');
+      if (btnDelete) {
+        btnDelete.addEventListener('click', () => {
+          excluirCicloAction(c.ano_exercicio || c.ano);
+        });
+      }
+
+      elements.tableCiclosBody.appendChild(tr);
+    });
+  }
+
+  function abrirFormCiclo(ciclo = null) {
+    elements.formCiclo.style.display = 'block';
+    if (ciclo) {
+      elements.formCicloTitle.textContent = `Editar Exercício / Ciclo ${ciclo.ano_exercicio || ciclo.ano}`;
+      elements.cicloId.value = ciclo.id_ciclo || '';
+      elements.cicloAno.value = ciclo.ano_exercicio || ciclo.ano || '';
+      elements.cicloProcMae.value = ciclo.processo_sei_mae || ciclo.processo_mae || '';
+      elements.cicloDataCautela.value = converterParaInputDate(ciclo.data_limite_cautela);
+      elements.cicloDataFinal.value = converterParaInputDate(ciclo.data_limite_final);
+      elements.cicloStatus.value = ciclo.status_ciclo || 'EM_ANDAMENTO';
+      elements.cicloDefinirAtivo.checked = ciclo.ativo === 'S';
+    } else {
+      elements.formCicloTitle.textContent = 'Cadastrar Novo Exercício / Ciclo';
+      elements.formCiclo.reset();
+      elements.cicloId.value = '';
+      elements.cicloAno.value = new Date().getFullYear() + 1;
+      elements.cicloDefinirAtivo.checked = false;
+    }
+    elements.formCiclo.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function fecharFormCiclo() {
+    elements.formCiclo.reset();
+    elements.cicloId.value = '';
+    elements.formCiclo.style.display = 'none';
+  }
+
+  function salvarCicloAction() {
+    const payload = {
+      id_ciclo: elements.cicloId.value ? parseInt(elements.cicloId.value, 10) : null,
+      ano_exercicio: parseInt(elements.cicloAno.value, 10),
+      processo_sei_mae: elements.cicloProcMae.value.trim(),
+      data_limite_cautela: elements.cicloDataCautela.value,
+      data_limite_final: elements.cicloDataFinal.value,
+      status_ciclo: elements.cicloStatus.value,
+      ativo: elements.cicloDefinirAtivo.checked ? 'S' : 'N'
+    };
+
+    if (!payload.ano_exercicio) {
+      showToast('Informe o Ano do Exercício!', 'error');
+      return;
+    }
+
+    const btn = document.getElementById('btn-salvar-ciclo');
+    btn.disabled = true;
+    btn.textContent = 'Salvando Ciclo...';
+
+    const aplicarSucesso = () => {
+      btn.disabled = false;
+      btn.textContent = '💾 Salvar Exercício / Ciclo';
+
+      const idx = state.ciclos.findIndex(c => (c.ano_exercicio || c.ano) === payload.ano_exercicio);
+      if (payload.ativo === 'S') {
+        state.ciclos.forEach(c => { c.ativo = 'N'; });
+        state.ciclo = { ...payload };
+      }
+
+      if (idx >= 0) {
+        state.ciclos[idx] = { ...state.ciclos[idx], ...payload };
+      } else {
+        payload.id_ciclo = Math.max(...state.ciclos.map(c => c.id_ciclo || 0), 0) + 1;
+        state.ciclos.push(payload);
+      }
+
+      renderCiclosTable();
+      fecharFormCiclo();
+      showToast(`✓ Exercício ${payload.ano_exercicio} salvo com sucesso!`, 'success');
+      carregarDadosDoBancoGoogle();
+    };
+
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (res && res.status === 'success') {
+            aplicarSucesso();
+          } else {
+            btn.disabled = false;
+            btn.textContent = '💾 Salvar Exercício / Ciclo';
+            showToast('Erro ao salvar ciclo: ' + (res.mensagem || 'Falha'), 'error');
+          }
+        })
+        .withFailureHandler((err) => {
+          btn.disabled = false;
+          btn.textContent = '💾 Salvar Exercício / Ciclo';
+          showToast('Erro de comunicação: ' + err.toString(), 'error');
+        })
+        .salvarParametrosCiclo(payload);
+    } else {
+      setTimeout(() => aplicarSucesso(), 300);
+    }
+  }
+
+  function ativarCicloAction(ano) {
+    const aplicar = () => {
+      state.ciclos.forEach(c => {
+        c.ativo = ((c.ano_exercicio || c.ano) === ano) ? 'S' : 'N';
+        if (c.ativo === 'S') state.ciclo = { ...c };
+      });
+      renderCiclosTable();
+      showToast(`✓ Exercício ${ano} definido como ciclo vigente!`, 'success');
+      carregarDadosDoBancoGoogle();
+    };
+
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (res && res.status === 'success') {
+            aplicar();
+          } else {
+            showToast('Erro ao ativar ciclo: ' + (res.mensagem || 'Falha'), 'error');
+          }
+        })
+        .withFailureHandler((err) => {
+          showToast('Erro de comunicação: ' + err.toString(), 'error');
+        })
+        .ativarCiclo(ano);
+    } else {
+      aplicar();
+    }
+  }
+
+  async function excluirCicloAction(ano) {
+    const confirmed = await showConfirmDialog({
+      title: 'Excluir Exercício de Inventário',
+      message: `Tem certeza que deseja remover o ciclo de inventário do ano ${ano}? Esta ação removerá os parâmetros configurados deste exercício.`,
+      details: `<strong>Ano do Exercício:</strong> ${ano}`,
+      confirmText: 'Sim, Excluir Exercício',
+      cancelText: 'Cancelar',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
+
+    const aplicar = () => {
+      state.ciclos = state.ciclos.filter(c => (c.ano_exercicio || c.ano) !== ano);
+      renderCiclosTable();
+      showToast(`✓ Exercício ${ano} excluído!`, 'info');
+      carregarDadosDoBancoGoogle();
+    };
+
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (res && res.status === 'success') {
+            aplicar();
+          } else {
+            showToast('Erro ao excluir ciclo: ' + (res.mensagem || 'Falha'), 'error');
+          }
+        })
+        .withFailureHandler((err) => {
+          showToast('Erro de comunicação: ' + err.toString(), 'error');
+        })
+        .excluirCiclo(ano);
+    } else {
+      aplicar();
+    }
+  }
+
+  // --- Sub-aba 4: Régua do Cronograma Oficial ---
+  function renderCronogramaTable() {
+    elements.tableCronogramaBody.innerHTML = '';
+    state.cronograma.forEach((item, index) => {
+      item.id_etapa = item.id_etapa || (index + 1);
+      const tr = document.createElement('tr');
+      const statusBadge = item.status === 'concluido' 
+        ? '<span class="badge-status-pill badge-ativo">✓ Concluído</span>'
+        : (item.status === 'em_andamento' 
+          ? '<span class="badge-status-pill badge-sede">⏳ Em curso</span>' 
+          : '<span class="badge-status-pill badge-inativo">📅 Previsto</span>');
+
+      const dataFormatada = formatarDataPtBr(item.label || item.data);
+      tr.innerHTML = `
+        <td style="font-weight: 700; color: var(--primary); white-space: nowrap">${dataFormatada}</td>
+        <td style="font-weight: 500">${item.acao}</td>
+        <td style="font-weight: 600; color: var(--text-muted)">${item.responsavel}</td>
+        <td>${statusBadge}</td>
+        <td>
+          <div style="display: flex; gap: 4px;">
+            <button class="btn-action btn-edit-etapa" data-idx="${index}" style="padding: 3px 8px; font-size: 11px">
+              ✏️ Editar
+            </button>
+            <button class="btn-action btn-delete-etapa" data-idx="${index}" style="padding: 3px 8px; font-size: 11px; color: var(--danger)">
+              🗑️ Excluir
+            </button>
+          </div>
+        </td>
+      `;
+
+      tr.querySelector('.btn-edit-etapa').addEventListener('click', () => {
+        abrirFormEtapaCronograma(item, index);
+      });
+
+      tr.querySelector('.btn-delete-etapa').addEventListener('click', () => {
+        excluirEtapaCronogramaAction(item, index);
+      });
+
+      elements.tableCronogramaBody.appendChild(tr);
+    });
+  }
+
+  function abrirFormEtapaCronograma(etapa = null, index = null) {
+    elements.formEtapaCronograma.style.display = 'block';
+    if (etapa) {
+      const dataLabel = formatarDataPtBr(etapa.label || etapa.data || '');
+      elements.formEtapaTitle.textContent = `Editar Etapa: ${dataLabel}`;
+      elements.formEtapaId.value = etapa.id_etapa || (index !== null ? (index + 1) : '');
+      elements.etapaData.value = dataLabel;
+      elements.etapaResponsavel.value = etapa.responsavel || '';
+      elements.etapaAcao.value = etapa.acao || '';
+      elements.etapaStatus.value = etapa.status || 'em_andamento';
+    } else {
+      elements.formEtapaTitle.textContent = 'Adicionar Nova Etapa ao Cronograma';
+      elements.formEtapaCronograma.reset();
+      elements.formEtapaId.value = '';
+    }
+    elements.formEtapaCronograma.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function fecharFormEtapaCronograma() {
+    elements.formEtapaCronograma.reset();
+    elements.formEtapaId.value = '';
+    elements.formEtapaCronograma.style.display = 'none';
+  }
+
+  function salvarEtapaCronogramaAction() {
+    const idVal = elements.formEtapaId.value;
+    const isEdicao = idVal !== '';
+    const payload = {
+      id_etapa: isEdicao ? parseInt(idVal, 10) : null,
+      data: elements.etapaData.value.trim(),
+      label: elements.etapaData.value.trim(),
+      responsavel: elements.etapaResponsavel.value.trim(),
+      acao: elements.etapaAcao.value.trim(),
+      status: elements.etapaStatus.value
+    };
+
+    if (!payload.data || !payload.acao || !payload.responsavel) {
+      showToast('Preencha todos os campos da etapa!', 'error');
+      return;
+    }
+
+    const btn = document.getElementById('btn-salvar-etapa');
+    btn.disabled = true;
+    btn.textContent = 'Salvando Etapa...';
+
+    const aplicarSucesso = () => {
+      btn.disabled = false;
+      btn.textContent = '💾 Salvar Etapa';
+
+      if (isEdicao && !isNaN(payload.id_etapa)) {
+        const itemIdx = state.cronograma.findIndex(e => String(e.id_etapa) === String(payload.id_etapa));
+        if (itemIdx >= 0) {
+          state.cronograma[itemIdx] = { ...state.cronograma[itemIdx], ...payload };
+        } else {
+          state.cronograma.push(payload);
+        }
+      } else {
+        state.cronograma.push(payload);
+      }
+
+      renderCronogramaTable();
+      renderCronograma(); // Atualiza a régua visual do Dashboard!
+      fecharFormEtapaCronograma();
+      showToast('✓ Cronograma oficial atualizado com sucesso!', 'success');
+      carregarDadosDoBancoGoogle();
+    };
+
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (res && res.status === 'success') {
+            aplicarSucesso();
+          } else {
+            btn.disabled = false;
+            btn.textContent = '💾 Salvar Etapa';
+            showToast('Erro ao salvar etapa: ' + (res.mensagem || 'Falha'), 'error');
+          }
+        })
+        .withFailureHandler((err) => {
+          btn.disabled = false;
+          btn.textContent = '💾 Salvar Etapa';
+          showToast('Erro de comunicação: ' + err.toString(), 'error');
+        })
+        .salvarEtapaCronograma(payload);
+    } else {
+      setTimeout(() => aplicarSucesso(), 300);
+    }
+  }
+
+  async function excluirEtapaCronogramaAction(item, index) {
+    const confirmed = await showConfirmDialog({
+      title: 'Remover Etapa do Cronograma',
+      message: 'Deseja remover esta etapa do cronograma e da régua visual de prazos do Dashboard?',
+      details: `<strong>Ação / Etapa:</strong> ${item.acao}<br><strong>Data / Prazo:</strong> ${item.label || item.data || 'N/A'}<br><strong>Responsável:</strong> ${item.responsavel || 'N/A'}`,
+      confirmText: 'Sim, Remover Etapa',
+      cancelText: 'Cancelar',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
+
+    const aplicarExclusao = () => {
+      state.cronograma.splice(index, 1);
+      renderCronogramaTable();
+      renderCronograma(); // Atualiza a régua visual do Dashboard!
+      showToast('✓ Etapa removida do cronograma!', 'info');
+      carregarDadosDoBancoGoogle();
+    };
+
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (res && res.status === 'success') {
+            aplicarExclusao();
+          } else {
+            showToast('Erro ao excluir etapa: ' + (res.mensagem || 'Falha'), 'error');
+          }
+        })
+        .withFailureHandler((err) => {
+          showToast('Erro de comunicação: ' + err.toString(), 'error');
+        })
+        .excluirEtapaCronograma(item.id_etapa || (index + 1));
+    } else {
+      aplicarExclusao();
+    }
   }
 
   // Inicializa a aplicação
