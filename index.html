@@ -6,6 +6,9 @@
   <title>Sistema de Inventário 2026 — SENAPPEN</title>
   <link rel="stylesheet" href="src/styles.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
+  <!-- Bibliotecas de Exportação: SheetJS (XLSX) e html2pdf (PDF) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -70,9 +73,14 @@
           <div class="section-title">
             <span>📅</span> Cronograma Oficial das Atividades de Inventário (SEI nº 35011389)
           </div>
-          <button id="btn-reset-top" class="btn-action btn-reset-top" title="Restaurar todos os filtros">
-            <span>↺</span> Limpar Filtros
-          </button>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button id="btn-pdf-dashboard" class="btn-action btn-pdf-top" title="Gerar arquivo PDF com o resumo das informações do Dashboard">
+              <span>📄</span> Relatório PDF
+            </button>
+            <button id="btn-reset-top" class="btn-action btn-reset-top" title="Restaurar todos os filtros">
+              <span>↺</span> Limpar Filtros
+            </button>
+          </div>
         </div>
         <div class="timeline-track" id="timeline-track">
           <!-- Renderizado dinamicamente -->
@@ -236,6 +244,10 @@
 
             <button id="btn-reset" class="btn-action" title="Restaurar filtros padrões">
               <span>↺</span> Limpar
+            </button>
+
+            <button id="btn-export-xlsx" class="btn-action btn-export-xlsx" title="Exportar dados filtrados em planilha Excel (XLSX)">
+              <span>📊</span> Exportar XLSX
             </button>
 
             <button id="btn-export" class="btn-action" title="Exportar dados filtrados em CSV">
@@ -756,6 +768,51 @@
 
   <!-- Container de Toasts Flutuantes -->
   <div class="toast-container" id="toast-container"></div>
+
+  <!-- Modal de Relatório Executivo e Exportação PDF -->
+  <div class="modal-overlay" id="pdf-modal-overlay">
+    <div class="modal-content pdf-modal-content">
+      <div class="modal-header">
+        <div>
+          <h3 id="pdf-modal-title">Relatório Executivo do Dashboard</h3>
+          <p style="font-size: 12px; color: #cbd5e1; margin-top: 2px;">
+            Acompanhamento de governança do inventário patrimonial pronto para exportação em PDF ou impressão
+          </p>
+        </div>
+        <button class="modal-close" id="pdf-modal-close">&times;</button>
+      </div>
+
+      <!-- Barra de Controle de Escopo do Relatório -->
+      <div class="pdf-modal-toolbar">
+        <div class="pdf-scope-options">
+          <label class="pdf-scope-label">
+            <input type="radio" name="pdf-scope" value="consolidado" checked id="pdf-scope-consolidado">
+            <span><strong>Visão Consolidada Geral</strong> (Todas as 10 UGs • Panorama Completo)</span>
+          </label>
+          <label class="pdf-scope-label" id="pdf-scope-filtrado-wrapper">
+            <input type="radio" name="pdf-scope" value="filtrado" id="pdf-scope-filtrado">
+            <span id="pdf-scope-filtrado-text"><strong>Visão com Filtros Atuais</strong></span>
+          </label>
+        </div>
+
+        <div class="pdf-modal-actions">
+          <button type="button" class="btn-action" id="btn-imprimir-relatorio" title="Imprimir ou Salvar como PDF pelo navegador">
+            <span>🖨️</span> Imprimir
+          </button>
+          <button type="button" class="btn-action btn-primary" id="btn-baixar-pdf-final" title="Baixar arquivo PDF">
+            <span>📥</span> Baixar PDF
+          </button>
+        </div>
+      </div>
+
+      <!-- Área de Pré-visualização da Folha A4 do Relatório -->
+      <div class="pdf-preview-scroll">
+        <div id="pdf-report-preview" class="pdf-report-sheet">
+          <!-- Conteúdo gerado dinamicamente -->
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Scripts -->
   <script src="src/data.js"></script>

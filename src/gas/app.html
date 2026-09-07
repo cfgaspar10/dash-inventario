@@ -166,6 +166,8 @@ document.addEventListener('DOMContentLoaded', () => {
     btnResetTop: document.getElementById('btn-reset-top'),
     btnResetUg: document.getElementById('btn-reset-ug'),
     btnExport: document.getElementById('btn-export'),
+    btnExportXlsx: document.getElementById('btn-export-xlsx'),
+    btnPdfDashboard: document.getElementById('btn-pdf-dashboard'),
 
     // Tabela Dashboard
     tableBody: document.getElementById('table-body'),
@@ -534,6 +536,31 @@ document.addEventListener('DOMContentLoaded', () => {
     if (elements.btnResetTop) elements.btnResetTop.addEventListener('click', resetFilters);
     if (elements.btnResetUg) elements.btnResetUg.addEventListener('click', resetFilters);
     if (elements.btnExport) elements.btnExport.addEventListener('click', exportFilteredCsv);
+    if (elements.btnExportXlsx) elements.btnExportXlsx.addEventListener('click', exportFilteredXlsx);
+    if (elements.btnPdfDashboard) elements.btnPdfDashboard.addEventListener('click', abrirModalRelatorioPdf);
+
+    // Controles da Modal de Relatório Executivo PDF
+    const btnPdfClose = document.getElementById('pdf-modal-close');
+    if (btnPdfClose) btnPdfClose.addEventListener('click', fecharModalRelatorioPdf);
+
+    const pdfModalOverlay = document.getElementById('pdf-modal-overlay');
+    if (pdfModalOverlay) {
+      pdfModalOverlay.addEventListener('click', (e) => {
+        if (e.target === pdfModalOverlay) fecharModalRelatorioPdf();
+      });
+    }
+
+    const radioConsolidado = document.getElementById('pdf-scope-consolidado');
+    if (radioConsolidado) radioConsolidado.addEventListener('change', renderizarPreviewRelatorioPdf);
+
+    const radioFiltrado = document.getElementById('pdf-scope-filtrado');
+    if (radioFiltrado) radioFiltrado.addEventListener('change', renderizarPreviewRelatorioPdf);
+
+    const btnBaixarPdf = document.getElementById('btn-baixar-pdf-final');
+    if (btnBaixarPdf) btnBaixarPdf.addEventListener('click', baixarPdfRelatorioFinal);
+
+    const btnImprimirRel = document.getElementById('btn-imprimir-relatorio');
+    if (btnImprimirRel) btnImprimirRel.addEventListener('click', () => window.print());
 
     // Cópia interativa e discreta do Processo SEI com feedback
     document.addEventListener('click', (e) => {
@@ -1233,12 +1260,27 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function exportFilteredCsv() {
-    if (state.filteredData.length === 0) return;
-    const headers = ['UG', 'Codigo_UORG', 'Sigla_UORG', 'Status', 'Processo_SEI', 'Link_SEI', 'Bens_Acautelados'];
+    if (!state.filteredData || state.filteredData.length === 0) {
+      showToast('Nenhum dado encontrado para exportação.', 'warning');
+      return;
+    }
+    const cicloAno = state.cicloAtivo?.ano_exercicio || state.cicloAtivo?.ano || 2026;
+    const dataStr = new Date().toISOString().slice(0, 10);
+    const headers = [
+      'UG', 'Nome_UG', 'Codigo_UORG', 'SETOR_SIGLA', 'Status_Fase',
+      'Processo_SEI', 'Link_SEI', 'Bens_Acautelados', 'Relatorio_UORG', 'Relatorio_Final_UG'
+    ];
     const rows = state.filteredData.map(d => [
-      `"${d.ug_sigla}"`, `"${d.uorg_codigo}"`, `"${d.uorg_sigla}"`, `"${d.status_simplificado}"`,
-      `"${d.processo_sei || ''}"`, `"${d.processo_sei_link || ''}"`,
-      `"${(d.bens_acautelados_doc || '').replace(/"/g, '""')}"`
+      `"${(d.ug_sigla || '').replace(/"/g, '""')}"`,
+      `"${(d.ug_nome || '').replace(/"/g, '""')}"`,
+      `"${(d.uorg_codigo || '').toString().replace(/"/g, '""')}"`,
+      `"${(d.uorg_sigla || '').replace(/"/g, '""')}"`,
+      `"${(d.status_simplificado || '').replace(/"/g, '""')}"`,
+      `"${(d.processo_sei || '').replace(/"/g, '""')}"`,
+      `"${(d.processo_sei_link || '').replace(/"/g, '""')}"`,
+      `"${(d.bens_acautelados_doc || '').replace(/"/g, '""')}"`,
+      `"${(d.relatorio_uorg || '').replace(/"/g, '""')}"`,
+      `"${(d.relatorio_final_ug || '').replace(/"/g, '""')}"`
     ]);
 
     const csvContent = '\uFEFF' + [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
@@ -1246,9 +1288,315 @@ document.addEventListener('DOMContentLoaded', () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `inventario_senappen_filtrado_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `relacao_uorgs_inventario_senappen_${cicloAno}_${dataStr}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    showToast(`✓ Arquivo CSV exportado com sucesso!`, 'success');
+  }
+
+  function exportFilteredXlsx() {
+    if (!state.filteredData || state.filteredData.length === 0) {
+      showToast('Nenhum dado encontrado para exportação.', 'warning');
+      return;
+    }
+
+    if (typeof XLSX === 'undefined') {
+      showToast('Recurso XLSX indisponível. Gerando exportação em CSV...', 'info');
+      exportFilteredCsv();
+      return;
+    }
+
+    const cicloAno = state.cicloAtivo?.ano_exercicio || state.cicloAtivo?.ano || 2026;
+    const dataStr = new Date().toISOString().slice(0, 10);
+
+    // Mapeamento formatado e padronizado em Português
+    const dadosExcel = state.filteredData.map(item => ({
+      'UG': item.ug_sigla || '',
+      'Nome da UG': item.ug_nome || '',
+      'Código UORG': item.uorg_codigo || '',
+      'SETOR/SIGLA': item.uorg_sigla || '',
+      'Status da Fase': item.status_simplificado || '',
+      'Número do Processo SEI': item.processo_sei || '',
+      'Link Direto do SEI': item.processo_sei_link || '',
+      'Declaração de Bens Acautelados': item.bens_acautelados_doc || '',
+      'Relatório Setorial da UORG': item.relatorio_uorg || '',
+      'Relatório Final Consolidado da UG': item.relatorio_final_ug || ''
+    }));
+
+    // Cria a planilha e a pasta de trabalho (Workbook)
+    const ws = XLSX.utils.json_to_sheet(dadosExcel);
+
+    // Configuração de larguras automáticas de colunas
+    ws['!cols'] = [
+      { wch: 10 }, // UG
+      { wch: 38 }, // Nome da UG
+      { wch: 15 }, // Código UORG
+      { wch: 20 }, // SETOR/SIGLA
+      { wch: 20 }, // Status da Fase
+      { wch: 26 }, // Número do Processo SEI
+      { wch: 45 }, // Link Direto do SEI
+      { wch: 35 }, // Declaração de Bens Acautelados
+      { wch: 28 }, // Relatório Setorial da UORG
+      { wch: 28 }  // Relatório Final Consolidado da UG
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, `UORGs_${cicloAno}`);
+
+    const fileName = `relacao_uorgs_inventario_senappen_${cicloAno}_${dataStr}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    showToast(`✓ Planilha Excel (.xlsx) exportada com sucesso!`, 'success');
+  }
+
+  // ============================================================================
+  // RELATÓRIO EXECUTIVO E EXPORTAÇÃO PDF DO DASHBOARD (COM PRÉ-VISUALIZAÇÃO)
+  // ============================================================================
+
+  function abrirModalRelatorioPdf() {
+    const modal = document.getElementById('pdf-modal-overlay');
+    if (!modal) return;
+
+    // Verifica se há filtros aplicados na tela
+    const temFiltroAtivo = (
+      (state.filters.search && state.filters.search !== '') ||
+      state.filters.grupo !== 'TODOS' ||
+      state.filters.ug !== 'TODAS' ||
+      state.filters.status !== 'TODOS' ||
+      state.activeKpiFilter !== null
+    );
+
+    const radioFiltradoWrapper = document.getElementById('pdf-scope-filtrado-wrapper');
+    const radioFiltradoText = document.getElementById('pdf-scope-filtrado-text');
+    const radioConsolidado = document.getElementById('pdf-scope-consolidado');
+
+    if (temFiltroAtivo) {
+      if (radioFiltradoWrapper) radioFiltradoWrapper.style.display = 'inline-flex';
+      const filtrosDesc = [];
+      if (state.filters.ug !== 'TODAS') filtrosDesc.push(`UG: ${state.filters.ug}`);
+      if (state.filters.status !== 'TODOS') filtrosDesc.push(`Status: ${state.filters.status}`);
+      if (state.filters.grupo !== 'TODOS') filtrosDesc.push(`Grupo: ${state.filters.grupo === 'DIRETORIA' ? 'Sede' : 'SPF'}`);
+      if (state.filters.search) filtrosDesc.push(`Busca: "${state.filters.search}"`);
+      const descFiltro = filtrosDesc.join(', ');
+
+      if (radioFiltradoText) {
+        radioFiltradoText.innerHTML = `<strong>Visão com Filtros Atuais</strong> (${state.filteredData.length} UORGs • ${descFiltro})`;
+      }
+    } else {
+      if (radioFiltradoWrapper) radioFiltradoWrapper.style.display = 'none';
+      if (radioConsolidado) radioConsolidado.checked = true;
+    }
+
+    // Renderiza a pré-visualização na folha A4 com base na opção selecionada
+    renderizarPreviewRelatorioPdf();
+    modal.classList.add('active');
+  }
+
+  function fecharModalRelatorioPdf() {
+    const modal = document.getElementById('pdf-modal-overlay');
+    if (modal) modal.classList.remove('active');
+  }
+
+  function renderizarPreviewRelatorioPdf() {
+    const previewContainer = document.getElementById('pdf-report-preview');
+    if (!previewContainer) return;
+
+    const isConsolidado = document.getElementById('pdf-scope-consolidado')?.checked !== false;
+    const dataset = isConsolidado ? state.allData : state.filteredData;
+
+    const ciclo = state.cicloAtivo || {
+      ano_exercicio: 2026,
+      ano: 2026,
+      processo_sei_mae: '08016.007081/2026-59',
+      oficio_circular: 'Ofício Circular nº /2026/DIREX (SEI 35011389)'
+    };
+    const ano = ciclo.ano_exercicio || ciclo.ano || 2026;
+    const procGeral = ciclo.processo_sei_mae || ciclo.processo_mae || '08016.007081/2026-59';
+    const oficioCircular = ciclo.oficio_circular || `Ofício Circular nº /${ano}/DIREX (SEI 35011389)`;
+
+    // Totais e percentuais
+    const total = dataset.length;
+    let naoIniciado = 0, emAndamento = 0, processado = 0;
+    dataset.forEach(d => {
+      if (d.status_simplificado === 'Não iniciado') naoIniciado++;
+      else if (d.status_simplificado === 'Em andamento') emAndamento++;
+      else if (d.status_simplificado === 'Processado') processado++;
+    });
+
+    const pctNaoIniciado = total > 0 ? ((naoIniciado / total) * 100).toFixed(1) : '0.0';
+    const pctEmAndamento = total > 0 ? ((emAndamento / total) * 100).toFixed(1) : '0.0';
+    const pctProcessado = total > 0 ? ((processado / total) * 100).toFixed(1) : '0.0';
+    const restante = total - processado;
+    const pctRestante = total > 0 ? ((restante / total) * 100).toFixed(1) : '0.0';
+
+    // Agrupamento por UG
+    const ugGroups = {};
+    state.ugs.forEach(ug => {
+      ugGroups[ug.sigla] = { meta: ug, total: 0, naoIniciado: 0, emAndamento: 0, processado: 0 };
+    });
+    dataset.forEach(item => {
+      if (ugGroups[item.ug_sigla]) {
+        ugGroups[item.ug_sigla].total++;
+        if (item.status_simplificado === 'Não iniciado') ugGroups[item.ug_sigla].naoIniciado++;
+        else if (item.status_simplificado === 'Em andamento') ugGroups[item.ug_sigla].emAndamento++;
+        else if (item.status_simplificado === 'Processado') ugGroups[item.ug_sigla].processado++;
+      }
+    });
+
+    const agora = new Date();
+    const dataHoraEmissao = agora.toLocaleDateString('pt-BR') + ' às ' + agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+    let escopoTexto = 'Visão Consolidada Geral (Todas as 10 Unidades Gestoras • 100% do Inventário)';
+    if (!isConsolidado) {
+      const filtrosDesc = [];
+      if (state.filters.grupo !== 'TODOS') filtrosDesc.push(`Grupo: ${state.filters.grupo === 'DIRETORIA' ? 'Sede' : 'SPF'}`);
+      if (state.filters.ug !== 'TODAS') filtrosDesc.push(`UG: ${state.filters.ug}`);
+      if (state.filters.status !== 'TODOS') filtrosDesc.push(`Status: ${state.filters.status}`);
+      if (state.filters.search) filtrosDesc.push(`Busca: "${state.filters.search}"`);
+      escopoTexto = `Visão com Filtros Atuais: ${filtrosDesc.join(' | ')} (${total} UORGs)`;
+    }
+
+    // Linhas da tabela de UGs
+    const linhasUgHtml = Object.values(ugGroups)
+      .filter(g => isConsolidado ? true : g.total > 0)
+      .map(g => {
+        const pctConc = g.total > 0 ? ((g.processado / g.total) * 100).toFixed(0) : '0';
+        const tipoLabel = g.meta.tipo === 'PENITENCIARIA_FEDERAL' ? 'Penitenciária Federal' : 'Sede (Diretoria)';
+        return `
+          <tr>
+            <td style="font-weight: 700; color: #1e3a8a;">${g.meta.sigla}</td>
+            <td style="font-weight: 600;">${g.meta.nome}</td>
+            <td style="color: #64748b; font-size: 10px;">${tipoLabel}</td>
+            <td style="text-align: center; font-weight: 700;">${g.total}</td>
+            <td style="text-align: center; color: #dc2626; font-weight: 600;">${g.naoIniciado}</td>
+            <td style="text-align: center; color: #d97706; font-weight: 600;">${g.emAndamento}</td>
+            <td style="text-align: center; color: #16a34a; font-weight: 600;">${g.processado}</td>
+            <td style="text-align: center; font-weight: 700;">${pctConc}%</td>
+            <td style="font-family: monospace; font-size: 10px;">${g.meta.processo_sei || '-'}</td>
+          </tr>
+        `;
+      }).join('');
+
+    previewContainer.innerHTML = `
+      <div class="pdf-header">
+        <div class="pdf-header-top">
+          <div>
+            <div class="pdf-institution">Ministério da Justiça e Segurança Pública — SENAPPEN</div>
+            <div class="pdf-title">Relatório Executivo do Inventário Patrimonial Anual</div>
+            <div class="pdf-subtitle">Acompanhamento e Governança das Unidades Organizacionais (UORGs)</div>
+          </div>
+          <div style="text-align: right; font-size: 11px; color: #475569;">
+            <div style="font-weight: 700; color: #1e3a8a; font-size: 13px;">Exercício ${ano}</div>
+            <div>Ofício: ${oficioCircular}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pdf-metadata-grid">
+        <div class="pdf-meta-item"><strong>Processo Geral SENAPPEN:</strong> <span>${procGeral}</span></div>
+        <div class="pdf-meta-item"><strong>Data/Hora da Emissão:</strong> <span>${dataHoraEmissao}</span></div>
+        <div class="pdf-meta-item" style="grid-column: 1 / -1;"><strong>Escopo do Relatório:</strong> <span>${escopoTexto}</span></div>
+      </div>
+
+      <div class="pdf-section-title">Indicadores Consolidados de Execução</div>
+      <div class="pdf-kpi-grid">
+        <div class="pdf-kpi-card kpi-total">
+          <div class="pdf-kpi-label">Total de UORGs</div>
+          <div class="pdf-kpi-val">${total}</div>
+          <div class="pdf-kpi-pct">${isConsolidado ? '100% do Inventário' : 'UORGs no filtro'}</div>
+        </div>
+        <div class="pdf-kpi-card kpi-nao-iniciado">
+          <div class="pdf-kpi-label">Não Iniciado</div>
+          <div class="pdf-kpi-val" style="color: #dc2626;">${naoIniciado}</div>
+          <div class="pdf-kpi-pct">${pctNaoIniciado}% do escopo</div>
+        </div>
+        <div class="pdf-kpi-card kpi-em-andamento">
+          <div class="pdf-kpi-label">Em Andamento</div>
+          <div class="pdf-kpi-val" style="color: #d97706;">${emAndamento}</div>
+          <div class="pdf-kpi-pct">${pctEmAndamento}% do escopo</div>
+        </div>
+        <div class="pdf-kpi-card kpi-processado">
+          <div class="pdf-kpi-label">Processado</div>
+          <div class="pdf-kpi-val" style="color: #16a34a;">${processado}</div>
+          <div class="pdf-kpi-pct">${pctProcessado}% do escopo</div>
+        </div>
+      </div>
+
+      <div class="pdf-progress-bar">
+        <div style="width: ${pctNaoIniciado}%; background: #ef4444;"></div>
+        <div style="width: ${pctEmAndamento}%; background: #f59e0b;"></div>
+        <div style="width: ${pctProcessado}%; background: #10b981;"></div>
+      </div>
+      <div class="pdf-progress-legend">
+        <span>🔴 Não iniciado: ${naoIniciado} (${pctNaoIniciado}%)</span>
+        <span>🟡 Em andamento: ${emAndamento} (${pctEmAndamento}%)</span>
+        <span>🟢 Processado: ${processado} (${pctProcessado}%)</span>
+        <span>⏳ Restam: ${restante} (${pctRestante}%)</span>
+      </div>
+
+      <div class="pdf-section-title">Detalhamento Comparativo por Unidade Gestora (UG)</div>
+      <table class="pdf-table">
+        <thead>
+          <tr>
+            <th>UG</th>
+            <th>Nome da Unidade</th>
+            <th>Tipo</th>
+            <th style="text-align: center;">Total</th>
+            <th style="text-align: center;">Não Inic.</th>
+            <th style="text-align: center;">Em And.</th>
+            <th style="text-align: center;">Process.</th>
+            <th style="text-align: center;">% Conc.</th>
+            <th>Processo SEI</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${linhasUgHtml}
+        </tbody>
+      </table>
+
+      <div class="pdf-footer">
+        <span>Documento oficial gerado pelo Sistema de Gestão do Inventário Anual — SENAPPEN/MJSP</span>
+        <span>Autenticidade e integridade garantidas pelo sistema</span>
+      </div>
+    `;
+  }
+
+  function baixarPdfRelatorioFinal() {
+    const sheetElement = document.getElementById('pdf-report-preview');
+    if (!sheetElement) return;
+
+    if (typeof html2pdf === 'undefined') {
+      showToast('Biblioteca html2pdf não carregada. Abrindo impressão nativa...', 'info');
+      window.print();
+      return;
+    }
+
+    showToast('Gerando arquivo PDF de alta resolução...', 'info');
+
+    const cicloAno = state.cicloAtivo?.ano_exercicio || state.cicloAtivo?.ano || 2026;
+    const dataStr = new Date().toISOString().slice(0, 10);
+    const isConsolidado = document.getElementById('pdf-scope-consolidado')?.checked !== false;
+    const sufixo = isConsolidado ? 'consolidado' : 'filtrado';
+
+    const opt = {
+      margin: [6, 6, 6, 6],
+      filename: `relatorio_executivo_inventario_senappen_${cicloAno}_${sufixo}_${dataStr}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opt).from(sheetElement).save().then(() => {
+      showToast('✓ Relatório PDF gerado com sucesso!', 'success');
+    }).catch(err => {
+      console.error('Erro ao compilar PDF:', err);
+      showToast('Abrindo assistente de impressão do navegador para salvar PDF...', 'warning');
+      window.print();
+    });
   }
 
   // ============================================================================
