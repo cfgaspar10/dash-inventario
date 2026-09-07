@@ -1,0 +1,21 @@
+{
+  "name": "dash-inventario",
+  "version": "1.0.0",
+  "description": "Painel de Acompanhamento do Inventário Anual SENAPPEN 2026",
+  "scripts": {
+    "start": "python3 -m http.server 3000",
+    "build:gas": "python3 -c \"import os; ...\"",
+    "push": "clasp push -f",
+    "pull": "clasp pull",
+    "deploy": "clasp deploy",
+    "open": "clasp open"
+  },
+  "keywords": [
+    "senappen",
+    "inventario",
+    "google-apps-script",
+    "oracle-apex"
+  ],
+  "author": "SENAPPEN",
+  "license": "MIT"
+}

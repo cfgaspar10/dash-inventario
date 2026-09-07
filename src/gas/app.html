@@ -1,0 +1,543 @@
+<script>
+// Se estiver rodando dentro do Google Apps Script com google.script.run disponível:
+if (typeof google !== 'undefined' && google.script && google.script.run) {
+  google.script.run.withSuccessHandler(function(response) {
+    if (response && response.status === 'success' && response.dados && response.dados.length > 0) {
+      console.log('Dados carregados dinamicamente da planilha via GAS:', response.dados.length);
+      window.DASH_DATA.inventario = response.dados;
+      // Re-disparar evento para atualizar
+      window.dispatchEvent(new Event('dashDataUpdated'));
+    }
+  }).getInventarioData();
+}
+
+/**
+ * Aplicação do Painel de Inventário SENAPPEN 2026
+ * Focado na visão simplificada: Não iniciado, Em andamento, Processado
+ */
+
+document.addEventListener('DOMContentLoaded', () => {
+  const rawData = window.DASH_DATA;
+  if (!rawData || !rawData.inventario) {
+    console.error('Dados do inventário não encontrados!');
+    return;
+  }
+
+  // Estado da Aplicação
+  const state = {
+    allData: rawData.inventario,
+    filteredData: [...rawData.inventario],
+    cronograma: rawData.cronograma,
+    ugs: rawData.ugs,
+    filters: {
+      search: '',
+      grupo: 'TODOS',
+      ug: 'TODAS',
+      status: 'TODOS'
+    },
+    activeKpiFilter: null
+  };
+
+  // Elementos do DOM
+  const elements = {
+    // KPIs
+    kpiTotal: document.getElementById('kpi-total-val'),
+    kpiNaoIniciadoVal: document.getElementById('kpi-nao-iniciado-val'),
+    kpiNaoIniciadoPct: document.getElementById('kpi-nao-iniciado-pct'),
+    kpiEmAndamentoVal: document.getElementById('kpi-em-andamento-val'),
+    kpiEmAndamentoPct: document.getElementById('kpi-em-andamento-pct'),
+    kpiProcessadoVal: document.getElementById('kpi-processado-val'),
+    kpiProcessadoPct: document.getElementById('kpi-processado-pct'),
+    kpiRestaVal: document.getElementById('kpi-resta-val'),
+    kpiRestaSubtitle: document.getElementById('kpi-resta-sub'),
+
+    // Barra de Progresso
+    segNaoIniciado: document.getElementById('seg-nao-iniciado'),
+    segEmAndamento: document.getElementById('seg-em-andamento'),
+    segProcessado: document.getElementById('seg-processado'),
+    legNaoIniciado: document.getElementById('leg-nao-iniciado-txt'),
+    legEmAndamento: document.getElementById('leg-em-andamento-txt'),
+    legProcessado: document.getElementById('leg-processado-txt'),
+
+    // Cronograma
+    timelineTrack: document.getElementById('timeline-track'),
+
+    // Cards por UG
+    ugGrid: document.getElementById('ug-grid'),
+
+    // Controles
+    searchInput: document.getElementById('search-input'),
+    grupoSelect: document.getElementById('grupo-select'),
+    ugSelect: document.getElementById('ug-select'),
+    statusSelect: document.getElementById('status-select'),
+    btnReset: document.getElementById('btn-reset'),
+    btnExport: document.getElementById('btn-export'),
+
+    // Tabela
+    tableBody: document.getElementById('table-body'),
+    tableCount: document.getElementById('table-count'),
+
+    // Modal
+    modalOverlay: document.getElementById('modal-overlay'),
+    modalTitle: document.getElementById('modal-title'),
+    modalSubtitle: document.getElementById('modal-subtitle'),
+    modalBody: document.getElementById('modal-body'),
+    modalClose: document.getElementById('modal-close')
+  };
+
+  // 1. Inicializar Selects e Cronograma
+  function init() {
+    renderCronograma();
+    populateUgSelect();
+    attachEvents();
+    applyFilters();
+  }
+
+  // Renderiza a régua oficial do cronograma (Ofício Circular SEI 35011389)
+  function renderCronograma() {
+    elements.timelineTrack.innerHTML = '';
+    state.cronograma.forEach(item => {
+      const el = document.createElement('div');
+      el.className = `timeline-item ${item.status}`;
+      
+      const statusIcon = item.status === 'concluido' ? '✓' : (item.status === 'em_andamento' ? '⏳' : '📅');
+      const statusLabel = item.status === 'concluido' ? 'Concluído' : (item.status === 'em_andamento' ? 'Em curso' : 'Previsto');
+
+      el.innerHTML = `
+        <div class="timeline-date">
+          <span>${item.label}</span>
+          <span title="${statusLabel}">${statusIcon}</span>
+        </div>
+        <div class="timeline-acao" title="${item.acao}">${item.acao}</div>
+        <div class="timeline-resp">${item.responsavel}</div>
+      `;
+      elements.timelineTrack.appendChild(el);
+    });
+  }
+
+  // Preenche o seletor de UGs
+  function populateUgSelect() {
+    elements.ugSelect.innerHTML = '<option value="TODAS">Todas as Diretorias/UGs</option>';
+    state.ugs.forEach(ug => {
+      const opt = document.createElement('option');
+      opt.value = ug.sigla;
+      opt.textContent = `${ug.sigla} — ${ug.nome}`;
+      elements.ugSelect.appendChild(opt);
+    });
+  }
+
+  // Escutadores de Eventos
+  function attachEvents() {
+    elements.searchInput.addEventListener('input', (e) => {
+      state.filters.search = e.target.value.toLowerCase().trim();
+      applyFilters();
+    });
+
+    elements.grupoSelect.addEventListener('change', (e) => {
+      state.filters.grupo = e.target.value;
+      // Ajustar select de UG para corresponder ao grupo
+      filterUgSelectOptions(e.target.value);
+      applyFilters();
+    });
+
+    elements.ugSelect.addEventListener('change', (e) => {
+      state.filters.ug = e.target.value;
+      applyFilters();
+    });
+
+    elements.statusSelect.addEventListener('change', (e) => {
+      state.filters.status = e.target.value;
+      state.activeKpiFilter = null;
+      updateKpiCardsHighlight();
+      applyFilters();
+    });
+
+    elements.btnReset.addEventListener('click', resetFilters);
+    elements.btnExport.addEventListener('click', exportFilteredCsv);
+
+    // Click nos Cards de KPI para filtrar direto
+    setupKpiCardClick('kpi-nao-iniciado', 'Não iniciado');
+    setupKpiCardClick('kpi-em-andamento', 'Em andamento');
+    setupKpiCardClick('kpi-processado', 'Processado');
+    setupKpiCardClick('kpi-total', 'TODOS');
+
+    // Fechar Modal
+    elements.modalClose.addEventListener('click', closeModal);
+    elements.modalOverlay.addEventListener('click', (e) => {
+      if (e.target === elements.modalOverlay) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal();
+    });
+  }
+
+  function filterUgSelectOptions(grupo) {
+    const currentUg = elements.ugSelect.value;
+    elements.ugSelect.innerHTML = '<option value="TODAS">Todas as Diretorias/UGs</option>';
+    
+    state.ugs.forEach(ug => {
+      let include = true;
+      if (grupo === 'DIRETORIA' && ug.tipo !== 'DIRETORIA') include = false;
+      if (grupo === 'PENITENCIARIA_FEDERAL' && ug.tipo !== 'PENITENCIARIA_FEDERAL') include = false;
+
+      if (include) {
+        const opt = document.createElement('option');
+        opt.value = ug.sigla;
+        opt.textContent = `${ug.sigla} — ${ug.nome}`;
+        elements.ugSelect.appendChild(opt);
+      }
+    });
+
+    // Restaurar se ainda existir
+    elements.ugSelect.value = elements.ugSelect.querySelector(`option[value="${currentUg}"]`) ? currentUg : 'TODAS';
+    state.filters.ug = elements.ugSelect.value;
+  }
+
+  function setupKpiCardClick(id, statusValue) {
+    const card = document.getElementById(id);
+    if (!card) return;
+    card.addEventListener('click', () => {
+      if (state.filters.status === statusValue) {
+        state.filters.status = 'TODOS';
+        state.activeKpiFilter = null;
+      } else {
+        state.filters.status = statusValue;
+        state.activeKpiFilter = statusValue;
+      }
+      elements.statusSelect.value = state.filters.status;
+      updateKpiCardsHighlight();
+      applyFilters();
+    });
+  }
+
+  function updateKpiCardsHighlight() {
+    ['kpi-total', 'kpi-nao-iniciado', 'kpi-em-andamento', 'kpi-processado'].forEach(id => {
+      const card = document.getElementById(id);
+      if (card) card.classList.remove('active-filter');
+    });
+
+    if (state.activeKpiFilter === 'Não iniciado') {
+      document.getElementById('kpi-nao-iniciado')?.classList.add('active-filter');
+    } else if (state.activeKpiFilter === 'Em andamento') {
+      document.getElementById('kpi-em-andamento')?.classList.add('active-filter');
+    } else if (state.activeKpiFilter === 'Processado') {
+      document.getElementById('kpi-processado')?.classList.add('active-filter');
+    }
+  }
+
+  function resetFilters() {
+    state.filters = { search: '', grupo: 'TODOS', ug: 'TODAS', status: 'TODOS' };
+    state.activeKpiFilter = null;
+    elements.searchInput.value = '';
+    elements.grupoSelect.value = 'TODOS';
+    elements.statusSelect.value = 'TODOS';
+    filterUgSelectOptions('TODOS');
+    updateKpiCardsHighlight();
+    applyFilters();
+  }
+
+  // 2. Aplicação dos Filtros e Recálculo
+  function applyFilters() {
+    state.filteredData = state.allData.filter(item => {
+      // Filtro Busca
+      if (state.filters.search) {
+        const term = state.filters.search;
+        const matchesUorg = item.uorg_codigo && item.uorg_codigo.toLowerCase().includes(term);
+        const matchesSigla = item.uorg_sigla && item.uorg_sigla.toLowerCase().includes(term);
+        const matchesProc = item.processo_sei && item.processo_sei.toLowerCase().includes(term);
+        const matchesUg = item.ug_sigla && item.ug_sigla.toLowerCase().includes(term);
+        if (!matchesUorg && !matchesSigla && !matchesProc && !matchesUg) return false;
+      }
+
+      // Filtro Grupo
+      if (state.filters.grupo !== 'TODOS') {
+        if (item.ug_tipo !== state.filters.grupo) return false;
+      }
+
+      // Filtro UG
+      if (state.filters.ug !== 'TODAS') {
+        if (item.ug_sigla !== state.filters.ug) return false;
+      }
+
+      // Filtro Status
+      if (state.filters.status !== 'TODOS') {
+        if (item.status_simplificado !== state.filters.status) return false;
+      }
+
+      return true;
+    });
+
+    renderMetrics();
+    renderUgCards();
+    renderTable();
+  }
+
+  // 3. Renderização dos Indicadores / KPIs
+  function renderMetrics() {
+    const total = state.filteredData.length;
+    let naoIniciado = 0;
+    let emAndamento = 0;
+    let processado = 0;
+
+    state.filteredData.forEach(d => {
+      if (d.status_simplificado === 'Não iniciado') naoIniciado++;
+      else if (d.status_simplificado === 'Em andamento') emAndamento++;
+      else if (d.status_simplificado === 'Processado') processado++;
+    });
+
+    const pctNaoIniciado = total > 0 ? ((naoIniciado / total) * 100).toFixed(1) : '0.0';
+    const pctEmAndamento = total > 0 ? ((emAndamento / total) * 100).toFixed(1) : '0.0';
+    const pctProcessado = total > 0 ? ((processado / total) * 100).toFixed(1) : '0.0';
+
+    const restanteParaProcessar = total - processado;
+
+    // Atualizar DOM
+    elements.kpiTotal.textContent = total;
+    elements.kpiNaoIniciadoVal.textContent = naoIniciado;
+    elements.kpiNaoIniciadoPct.textContent = `${pctNaoIniciado}%`;
+
+    elements.kpiEmAndamentoVal.textContent = emAndamento;
+    elements.kpiEmAndamentoPct.textContent = `${pctEmAndamento}%`;
+
+    elements.kpiProcessadoVal.textContent = processado;
+    elements.kpiProcessadoPct.textContent = `${pctProcessado}%`;
+
+    elements.kpiRestaVal.textContent = restanteParaProcessar;
+    elements.kpiRestaSubtitle.textContent = `${((restanteParaProcessar / (total || 1)) * 100).toFixed(1)}% do escopo restante`;
+
+    // Barra de Progresso
+    elements.segNaoIniciado.style.width = `${pctNaoIniciado}%`;
+    elements.segEmAndamento.style.width = `${pctEmAndamento}%`;
+    elements.segProcessado.style.width = `${pctProcessado}%`;
+
+    elements.legNaoIniciado.textContent = `Não iniciado: ${naoIniciado} (${pctNaoIniciado}%)`;
+    elements.legEmAndamento.textContent = `Em andamento: ${emAndamento} (${pctEmAndamento}%)`;
+    elements.legProcessado.textContent = `Processado: ${processado} (${pctProcessado}%)`;
+  }
+
+  // 4. Renderização dos Cards Comparativos por UG
+  function renderUgCards() {
+    elements.ugGrid.innerHTML = '';
+
+    // Agrupar por UG nos dados filtrados
+    const ugGroups = {};
+    state.ugs.forEach(ug => {
+      ugGroups[ug.sigla] = {
+        meta: ug,
+        total: 0,
+        naoIniciado: 0,
+        emAndamento: 0,
+        processado: 0
+      };
+    });
+
+    state.filteredData.forEach(item => {
+      if (ugGroups[item.ug_sigla]) {
+        ugGroups[item.ug_sigla].total++;
+        if (item.status_simplificado === 'Não iniciado') ugGroups[item.ug_sigla].naoIniciado++;
+        else if (item.status_simplificado === 'Em andamento') ugGroups[item.ug_sigla].emAndamento++;
+        else if (item.status_simplificado === 'Processado') ugGroups[item.ug_sigla].processado++;
+      }
+    });
+
+    // Renderizar cards das UGs que possuem dados no filtro
+    Object.values(ugGroups).forEach(ug => {
+      if (ug.total === 0) return;
+
+      const card = document.createElement('div');
+      card.className = `ug-card ${state.filters.ug === ug.meta.sigla ? 'selected' : ''}`;
+      
+      const pctEmAnd = ((ug.emAndamento / ug.total) * 100).toFixed(0);
+      const pctNaoIni = ((ug.naoIniciado / ug.total) * 100).toFixed(0);
+      const pctProc = ((ug.processado / ug.total) * 100).toFixed(0);
+
+      const tipoBadge = ug.meta.tipo === 'DIRETORIA' ? 'Sede' : 'Penitenciária';
+
+      card.innerHTML = `
+        <div class="ug-card-title-row">
+          <span class="ug-sigla">${ug.meta.sigla}</span>
+          <span class="ug-tipo-pill">${tipoBadge}</span>
+        </div>
+        <div class="ug-card-name" title="${ug.meta.nome}">${ug.meta.nome}</div>
+        <div class="ug-card-metrics">
+          <span>Total: <strong>${ug.total}</strong></span>
+          <span>Em andamento: <strong style="color: var(--status-em-andamento)">${ug.emAndamento}</strong></span>
+          <span>Não iniciado: <strong style="color: var(--status-nao-iniciado)">${ug.naoIniciado}</strong></span>
+        </div>
+        <div class="progress-bar-multi" style="height: 8px;">
+          <div class="progress-segment nao-iniciado" style="width: ${pctNaoIni}%"></div>
+          <div class="progress-segment em-andamento" style="width: ${pctEmAnd}%"></div>
+          <div class="progress-segment processado" style="width: ${pctProc}%"></div>
+        </div>
+      `;
+
+      card.addEventListener('click', () => {
+        if (state.filters.ug === ug.meta.sigla) {
+          state.filters.ug = 'TODAS';
+        } else {
+          state.filters.ug = ug.meta.sigla;
+        }
+        elements.ugSelect.value = state.filters.ug;
+        applyFilters();
+      });
+
+      elements.ugGrid.appendChild(card);
+    });
+  }
+
+  // 5. Renderização da Tabela de UORGs
+  function renderTable() {
+    elements.tableBody.innerHTML = '';
+    elements.tableCount.textContent = `Exibindo ${state.filteredData.length} de ${state.allData.length} UORGs`;
+
+    if (state.filteredData.length === 0) {
+      elements.tableBody.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align: center; padding: 32px; color: var(--text-muted)">
+            Nenhuma UORG encontrada com os filtros selecionados.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    state.filteredData.forEach(item => {
+      const tr = document.createElement('tr');
+      
+      const statusClass = item.status_simplificado === 'Processado' ? 'processado' 
+                        : (item.status_simplificado === 'Em andamento' ? 'em-andamento' : 'nao-iniciado');
+
+      const procHtml = item.processo_sei ? (
+        item.processo_sei_link ? `
+          <a href="${item.processo_sei_link}" target="_blank" rel="noopener noreferrer" class="sei-link" title="Abrir no SEI">
+            ${item.processo_sei} ↗
+          </a>
+        ` : `<span class="sei-link" style="text-decoration:none">${item.processo_sei}</span>`
+      ) : `<span class="sei-empty">Não autuado</span>`;
+
+      const cautelaHtml = item.bens_acautelados_doc ? `
+        <span style="font-size: 12px; color: #166534; font-weight: 500" title="${item.bens_acautelados_doc}">
+          ✓ Entregue
+        </span>
+      ` : `<span class="sei-empty">Pendente</span>`;
+
+      tr.innerHTML = `
+        <td style="font-weight: 700; color: var(--primary)">${item.ug_sigla}</td>
+        <td style="font-family: var(--font-mono); font-weight: 600">${item.uorg_codigo || '-'}</td>
+        <td style="font-weight: 600">${item.uorg_sigla}</td>
+        <td>
+          <span class="status-pill ${statusClass}">
+            <span class="legend-dot ${statusClass}"></span>
+            ${item.status_simplificado}
+          </span>
+        </td>
+        <td>${procHtml}</td>
+        <td>${cautelaHtml}</td>
+        <td style="color: var(--text-muted); font-size: 12px">
+          ${item.comissao_designacao ? item.comissao_designacao.slice(0, 30) + '...' : '-'}
+        </td>
+      `;
+
+      tr.addEventListener('click', (e) => {
+        // Se não clicou no link do SEI, abre o modal
+        if (!e.target.closest('a')) {
+          openModal(item);
+        }
+      });
+
+      elements.tableBody.appendChild(tr);
+    });
+  }
+
+  // 6. Modal de Detalhes da UORG
+  function openModal(item) {
+    elements.modalTitle.textContent = `${item.ug_sigla} — ${item.uorg_sigla}`;
+    elements.modalSubtitle.textContent = `Código UORG: ${item.uorg_codigo} | UG: ${item.ug_nome}`;
+
+    const statusClass = item.status_simplificado === 'Processado' ? 'processado' 
+                      : (item.status_simplificado === 'Em andamento' ? 'em-andamento' : 'nao-iniciado');
+
+    elements.modalBody.innerHTML = `
+      <div class="detail-row">
+        <span class="detail-label">Status do Inventário</span>
+        <div>
+          <span class="status-pill ${statusClass}">
+            <span class="legend-dot ${statusClass}"></span>
+            ${item.status_simplificado}
+          </span>
+        </div>
+      </div>
+
+      <div class="detail-row">
+        <span class="detail-label">Processo SEI do Inventário</span>
+        <div class="detail-value">
+          ${item.processo_sei ? (
+            item.processo_sei_link 
+              ? `<a href="${item.processo_sei_link}" target="_blank" class="sei-link" style="font-size:14px">${item.processo_sei} (Clique para abrir no SEI) ↗</a>` 
+              : item.processo_sei
+          ) : 'Nenhum processo autuado até o momento'}
+        </div>
+      </div>
+
+      <div class="detail-row">
+        <span class="detail-label">Declaração de Bens Acautelados (Marco: 31/08/2026)</span>
+        <div class="detail-value">
+          ${item.bens_acautelados_doc || 'Pendente de envio pelo responsável pela carga patrimonial'}
+        </div>
+      </div>
+
+      <div class="detail-row">
+        <span class="detail-label">Comissão / Designação de Membros</span>
+        <div class="detail-value" style="white-space: pre-wrap">
+          ${item.comissao_designacao || 'Designação sob Portaria Geral da Unidade Gestora'}
+        </div>
+      </div>
+
+      <div class="detail-row">
+        <span class="detail-label">Próximo Marco do Cronograma Oficial</span>
+        <div class="detail-value" style="border-left: 3px solid var(--primary)">
+          <strong>30/11/2026:</strong> Expedição do Relatório Final da Unidade Gestora após conclusão dos levantamentos de todas as UORGs.
+        </div>
+      </div>
+    `;
+
+    elements.modalOverlay.classList.add('active');
+  }
+
+  function closeModal() {
+    elements.modalOverlay.classList.remove('active');
+  }
+
+  // 7. Exportar CSV Filtrado
+  function exportFilteredCsv() {
+    if (state.filteredData.length === 0) {
+      alert('Nenhum dado para exportar!');
+      return;
+    }
+
+    const headers = ['UG', 'Codigo_UORG', 'Sigla_UORG', 'Status', 'Processo_SEI', 'Link_SEI', 'Bens_Acautelados'];
+    const rows = state.filteredData.map(d => [
+      `"${d.ug_sigla}"`,
+      `"${d.uorg_codigo}"`,
+      `"${d.uorg_sigla}"`,
+      `"${d.status_simplificado}"`,
+      `"${d.processo_sei || ''}"`,
+      `"${d.processo_sei_link || ''}"`,
+      `"${(d.bens_acautelados_doc || '').replace(/"/g, '""')}"`
+    ]);
+
+    const csvContent = '\uFEFF' + [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `inventario_senappen_filtrado_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // Iniciar
+  init();
+});
+
+</script>

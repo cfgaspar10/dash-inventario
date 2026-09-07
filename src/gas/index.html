@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel de Inventário 2026 — SENAPPEN</title>
+  <?!= include("styles"); ?>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Cabeçalho -->
+    <header class="header">
+      <div class="header-top">
+        <div>
+          <div class="header-badges">
+            <span class="badge-tag highlight">SENAPPEN / MJSP</span>
+            <span class="badge-tag">Exercício 2026</span>
+            <span class="badge-tag">Ofício Circular nº /2026/DIREX (SEI 35011389)</span>
+          </div>
+          <h1 class="header-title">Painel de Acompanhamento do Inventário Anual</h1>
+          <p class="header-subtitle">
+            Monitoramento simplificado das 224 UORGs nas fases <strong>Não iniciado</strong>, <strong>Em andamento</strong> e <strong>Processado</strong>, com acompanhamento de metas e estimativas de prazos.
+          </p>
+        </div>
+        <div class="header-processo">
+          <span class="label">Processo Geral SENAPPEN</span>
+          <span class="value">08016.007081/2026-59</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Régua do Cronograma Oficial (Ofício Circular SEI 35011389) -->
+    <section class="timeline-section">
+      <div class="timeline-header">
+        <div class="section-title">
+          <span>📅</span> Cronograma Oficial das Atividades de Inventário (SEI nº 35011389)
+        </div>
+      </div>
+      <div class="timeline-track" id="timeline-track">
+        <!-- Renderizado dinamicamente via app.js -->
+      </div>
+    </section>
+
+    <!-- Cards de Métricas Principais (KPIs) -->
+    <section class="kpi-grid">
+      <!-- Total -->
+      <div class="kpi-card kpi-total" id="kpi-total" title="Clique para ver todas as UORGs">
+        <div class="kpi-header">
+          <span class="kpi-title">Total de UORGs</span>
+          <div class="kpi-icon">🏢</div>
+        </div>
+        <div class="kpi-value-row">
+          <span class="kpi-value" id="kpi-total-val">224</span>
+        </div>
+        <div class="kpi-subtitle">Unidades em 10 Unidades Gestoras</div>
+      </div>
+
+      <!-- Não Iniciado -->
+      <div class="kpi-card kpi-nao-iniciado" id="kpi-nao-iniciado" title="Clique para filtrar apenas Não Iniciadas">
+        <div class="kpi-header">
+          <span class="kpi-title">Não Iniciado</span>
+          <div class="kpi-icon">🔴</div>
+        </div>
+        <div class="kpi-value-row">
+          <span class="kpi-value" id="kpi-nao-iniciado-val">32</span>
+          <span class="kpi-pct" id="kpi-nao-iniciado-pct">14.3%</span>
+        </div>
+        <div class="kpi-subtitle">Sem processo autuado ou comissão</div>
+      </div>
+
+      <!-- Em Andamento -->
+      <div class="kpi-card kpi-em-andamento" id="kpi-em-andamento" title="Clique para filtrar apenas Em Andamento">
+        <div class="kpi-header">
+          <span class="kpi-title">Em Andamento</span>
+          <div class="kpi-icon">🟡</div>
+        </div>
+        <div class="kpi-value-row">
+          <span class="kpi-value" id="kpi-em-andamento-val">192</span>
+          <span class="kpi-pct" id="kpi-em-andamento-pct">85.7%</span>
+        </div>
+        <div class="kpi-subtitle">Processo autuado / cautelas informadas</div>
+      </div>
+
+      <!-- Processado -->
+      <div class="kpi-card kpi-processado" id="kpi-processado" title="Clique para filtrar apenas Processadas">
+        <div class="kpi-header">
+          <span class="kpi-title">Processado</span>
+          <div class="kpi-icon">🟢</div>
+        </div>
+        <div class="kpi-value-row">
+          <span class="kpi-value" id="kpi-processado-val">0</span>
+          <span class="kpi-pct" id="kpi-processado-pct">0.0%</span>
+        </div>
+        <div class="kpi-subtitle">Inventário e relatório final concluídos</div>
+      </div>
+
+      <!-- Quanto Resta -->
+      <div class="kpi-card kpi-restante" id="kpi-restante">
+        <div class="kpi-header">
+          <span class="kpi-title">Quanto Resta</span>
+          <div class="kpi-icon">⏳</div>
+        </div>
+        <div class="kpi-value-row">
+          <span class="kpi-value" id="kpi-resta-val">224</span>
+        </div>
+        <div class="kpi-subtitle" id="kpi-resta-sub">100% do escopo a processar até 30/11</div>
+      </div>
+    </section>
+
+    <!-- Barra de Progresso Geral Consolidada -->
+    <section class="progress-container">
+      <div class="progress-header">
+        <div class="section-title">
+          <span>📊</span> Distribuição Geral de Conclusão do Inventário
+        </div>
+      </div>
+      <div class="progress-bar-multi">
+        <div class="progress-segment nao-iniciado" id="seg-nao-iniciado" style="width: 14.3%;"></div>
+        <div class="progress-segment em-andamento" id="seg-em-andamento" style="width: 85.7%;"></div>
+        <div class="progress-segment processado" id="seg-processado" style="width: 0%;"></div>
+      </div>
+      <div class="progress-legend">
+        <div class="legend-item">
+          <span class="legend-dot nao-iniciado"></span>
+          <span id="leg-nao-iniciado-txt">Não iniciado: 32 (14.3%)</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot em-andamento"></span>
+          <span id="leg-em-andamento-txt">Em andamento: 192 (85.7%)</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot processado"></span>
+          <span id="leg-processado-txt">Processado: 0 (0.0%)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Comparativo por Diretoria / Penitenciária Federal -->
+    <section class="ug-comparison-section">
+      <div class="section-title">
+        <span>🏛️</span> Andamento por Diretoria / Unidade Gestora
+      </div>
+      <div class="ug-grid" id="ug-grid">
+        <!-- Renderizado dinamicamente via app.js -->
+      </div>
+    </section>
+
+    <!-- Controles de Filtro e Busca -->
+    <section class="controls-card">
+      <div class="controls-row">
+        <!-- Busca -->
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" class="search-input" placeholder="Buscar por código UORG, sigla, processo SEI ou diretoria...">
+        </div>
+
+        <!-- Filtros -->
+        <div class="filter-group">
+          <select id="grupo-select" class="select-custom">
+            <option value="TODOS">Todos os Grupos</option>
+            <option value="DIRETORIA">Sede (Diretorias)</option>
+            <option value="PENITENCIARIA_FEDERAL">Penitenciárias Federais (SPF)</option>
+          </select>
+
+          <select id="ug-select" class="select-custom">
+            <option value="TODAS">Todas as Diretorias/UGs</option>
+          </select>
+
+          <select id="status-select" class="select-custom">
+            <option value="TODOS">Todos os Status</option>
+            <option value="Não iniciado">🔴 Não iniciado</option>
+            <option value="Em andamento">🟡 Em andamento</option>
+            <option value="Processado">🟢 Processado</option>
+          </select>
+
+          <button id="btn-reset" class="btn-action" title="Restaurar filtros padrões">
+            <span>↺</span> Limpar
+          </button>
+
+          <button id="btn-export" class="btn-action" title="Exportar dados filtrados em CSV">
+            <span>📥</span> Exportar CSV
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tabela Detalhada de UORGs -->
+    <section class="table-card">
+      <div class="table-header-info">
+        <div class="section-title">
+          <span>📋</span> Relação de UORGs e Processos
+        </div>
+        <div class="table-count" id="table-count">Exibindo 224 de 224 UORGs</div>
+      </div>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>UG</th>
+              <th>Código UORG</th>
+              <th>Sigla / Setor</th>
+              <th>Status do Inventário</th>
+              <th>Processo SEI</th>
+              <th>Bens Acautelados</th>
+              <th>Comissão / Ato</th>
+            </tr>
+          </thead>
+          <tbody id="table-body">
+            <!-- Renderizado dinamicamente via app.js -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- Modal de Detalhes da UORG -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h3 id="modal-title">Detalhes da UORG</h3>
+          <p id="modal-subtitle" style="font-size: 12px; color: #cbd5e1; margin-top: 2px;"></p>
+        </div>
+        <button class="modal-close" id="modal-close">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body">
+        <!-- Renderizado dinamicamente via app.js -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <?!= include("data"); ?>
+  <?!= include("app"); ?>
+</body>
+</html>
