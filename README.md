@@ -78,10 +78,14 @@ O projeto adota uma estratégia de **design orientado a banco de dados relaciona
    [FASE 1: GOOGLE SUITE]                  [FASE 2: ORACLE APEX]
    Google Sheets (Tabelas 3FN)             Oracle Database (DDL Criado)
    Google Apps Script (Lógica & SLA)       PL/SQL Packages & Automations
-   Web App SPA Dinâmica                    Interactive Reports & Cards
 ```
 
-### Estrutura Normalizada das Tabelas
+### Planilha Oficial do Banco de Dados (`db_inventario`)
+- **ID da Planilha:** `16BhZl7wc62AUASvqObESL9gNMItHqQCp5KWMPo6fvnQ`
+- **ID do Projeto Google Apps Script:** `1R3laPMKhQL4a5ZDotJKxT6LDUFvjt8qnAsCJXxMyk3bxwokTZhVCFiXy`
+- **Link Direto:** [db_inventario no Google Sheets](https://docs.google.com/spreadsheets/d/16BhZl7wc62AUASvqObESL9gNMItHqQCp5KWMPo6fvnQ/edit)
+
+### Estrutura Normalizada das Tabelas Criadas na Planilha:
 
 1. `tb_ug`: Catálogo das 10 Unidades Gestoras (código, sigla, nome, tipo institucional).
 2. `tb_ciclo_inventario`: Parâmetros do exercício (prazos de cautela, prazo final, processo mãe).
