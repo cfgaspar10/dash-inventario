@@ -223,6 +223,22 @@ const AdminConfigController = {
   },
 
   /**
+   * Restaura o catálogo de UGs para o padrão consolidado oficial do modelo SENAPPEN
+   */
+  restaurarUgsPadrao: function() {
+    try {
+      const res = UgModel.restaurarUgsPadrao();
+      return {
+        status: 'success',
+        mensagem: 'Catálogo de UGs restaurado com sucesso para o padrão oficial do modelo SENAPPEN!',
+        dados: res
+      };
+    } catch (err) {
+      return { status: 'error', mensagem: err.message || err.toString() };
+    }
+  },
+
+  /**
    * Cadastra uma nova UORG via aplicação
    */
   cadastrarUorg: function(payload) {

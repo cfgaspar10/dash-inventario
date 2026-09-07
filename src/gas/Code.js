@@ -142,6 +142,10 @@ function excluirUg(siglaOuId) {
   return AdminConfigController.excluirUg(siglaOuId);
 }
 
+function restaurarUgsPadrao() {
+  return AdminConfigController.restaurarUgsPadrao();
+}
+
 function cadastrarUorg(payload) {
   return AdminConfigController.cadastrarUorg(payload);
 }

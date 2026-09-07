@@ -77,16 +77,16 @@ const Database = {
     if (nomeAba === CONFIG.ABAS.UG) {
       headers = ['id_ug', 'codigo_ug', 'sigla_ug', 'nome_ug', 'tipo_ug', 'processo_sei_ug', 'portaria_geral', 'ativo'];
       dados = [
-        [1, '200601', 'GAB', 'GABINETE DA SECRETARIA NACIONAL', 'DIRETORIA', '', '', 'S'],
-        [2, '200602', 'DIREX', 'DIRETORIA DE EXECUÇÃO PENAL', 'DIRETORIA', '', '', 'S'],
-        [3, '200603', 'DIRPP', 'DIRETORIA DE POLÍTICAS PENITENCIÁRIAS', 'DIRETORIA', '', '', 'S'],
-        [4, '200604', 'DISPF', 'DIRETORIA DO SISTEMA PENITENCIÁRIO FEDERAL', 'DIRETORIA', '', '', 'S'],
-        [5, '200605', 'DIRIN', 'DIRETORIA DE INTELIGÊNCIA PENITENCIÁRIA', 'DIRETORIA', '', '', 'S'],
-        [6, '200606', 'PFCG', 'PENITENCIÁRIA FEDERAL EM CAMPO GRANDE', 'PENITENCIARIA_FEDERAL', '', '', 'S'],
-        [7, '200607', 'PFCAT', 'PENITENCIÁRIA FEDERAL EM CATANDUVAS', 'PENITENCIARIA_FEDERAL', '', '', 'S'],
-        [8, '200608', 'PFPV', 'PENITENCIÁRIA FEDERAL EM PORTO VELHO', 'PENITENCIARIA_FEDERAL', '', '', 'S'],
-        [9, '200609', 'PFMOS', 'PENITENCIÁRIA FEDERAL EM MOSSORÓ', 'PENITENCIARIA_FEDERAL', '', '', 'S'],
-        [10, '200610', 'PFBRA', 'PENITENCIÁRIA FEDERAL EM BRASÍLIA', 'PENITENCIARIA_FEDERAL', '', '', 'S']
+        [1, 200326, 'DIREX', 'DIRETORIA EXECUTIVA', 'DIRETORIA', '', '', 'S'],
+        [2, 200323, 'DPPF', 'DIRETORIA DE POLÍTICA PENAL FEDERAL', 'DIRETORIA', '08016.015646/2026-71', 'Despacho 3662 (36191712)', 'S'],
+        [3, 200324, 'DIRPP', 'DIRETORIA DE POLÍTICAS PENITENCIÁRIAS', 'DIRETORIA', '', 'Despacho 3716 (36484471)', 'S'],
+        [4, 200327, 'DIPEN', 'DIRETORIA DE INTELIGÊNCIA PENITENCIÁRIA', 'DIRETORIA', '', '', 'S'],
+        [5, 200456, 'DICAP', 'DIRETORIA DE CIDADANIA E ALTERNATIVAS PENAIS', 'DIRETORIA', '08016.015872/2026-52', 'Despacho 2490 (36223813)', 'S'],
+        [6, 200600, 'PFCG', 'PENITENCIÁRIA FEDERAL EM CAMPO GRANDE', 'PENITENCIARIA_FEDERAL', '08118.003298/2026-41', 'Portaria 255 (SEI nº 36185723) e Errata (SEI nº 36320213)', 'S'],
+        [7, 200601, 'PFCAT', 'PENITENCIÁRIA FEDERAL EM CATANDUVAS', 'PENITENCIARIA_FEDERAL', '08117.003739/2026-15', 'Portaria 135 (SEI nº 36373976)', 'S'],
+        [8, 200603, 'PFPV', 'PENITENCIÁRIA FEDERAL EM PORTO VELHO', 'PENITENCIARIA_FEDERAL', '08120.005817/2026-67', 'Portaria 244 (36416225)', 'S'],
+        [9, 200602, 'PFMOS', 'PENITENCIÁRIA FEDERAL EM MOSSORÓ', 'PENITENCIARIA_FEDERAL', '08119.003612/2026-86', 'Portaria 175 (36416194)', 'S'],
+        [10, 200604, 'PFBRA', 'PENITENCIÁRIA FEDERAL EM BRASÍLIA', 'PENITENCIARIA_FEDERAL', '08016.015704/2026-67', 'Portaria 211 (36385472)', 'S']
       ];
     } else if (nomeAba === CONFIG.ABAS.CICLO) {
       headers = ['id_ciclo', 'ano_exercicio', 'processo_sei_mae', 'oficio_circular', 'data_limite_cautela', 'data_limite_final', 'status_ciclo', 'ativo'];
@@ -148,6 +148,9 @@ const InventarioModel = {
         obj[h] = Database.sanitizarValor(val);
       });
       if (obj.id) obj.id = parseInt(obj.id, 10) || obj.id;
+      if (obj.ug_sigla === 'DISPF' || obj.ug_sigla === 'DDPF') {
+        obj.ug_sigla = 'DPPF';
+      }
       return obj;
     });
   },
@@ -450,9 +453,52 @@ const InventarioModel = {
  * Modelo para Gestão de Unidades Gestoras (UGs)
  */
 const UgModel = {
+  UGS_OFICIAIS_PADRAO: [
+    { id_ug: 1, codigo_ug: 200326, sigla_ug: 'DIREX', nome_ug: 'DIRETORIA EXECUTIVA', tipo_ug: 'DIRETORIA', processo_sei_ug: '', portaria_geral: '', ativo: 'S' },
+    { id_ug: 2, codigo_ug: 200323, sigla_ug: 'DPPF', nome_ug: 'DIRETORIA DA POLÍCIA PENAL FEDERAL', tipo_ug: 'DIRETORIA', processo_sei_ug: '08016.015646/2026-71', portaria_geral: 'Despacho 3662 (36191712)', ativo: 'S' },
+    { id_ug: 3, codigo_ug: 200324, sigla_ug: 'DIRPP', nome_ug: 'DIRETORIA DE POLÍTICAS PENITENCIÁRIAS', tipo_ug: 'DIRETORIA', processo_sei_ug: '', portaria_geral: 'Despacho 3716 (36484471)', ativo: 'S' },
+    { id_ug: 4, codigo_ug: 200327, sigla_ug: 'DIPEN', nome_ug: 'DIRETORIA DE INTELIGÊNCIA PENITENCIÁRIA', tipo_ug: 'DIRETORIA', processo_sei_ug: '', portaria_geral: '', ativo: 'S' },
+    { id_ug: 5, codigo_ug: 200456, sigla_ug: 'DICAP', nome_ug: 'DIRETORIA DE CIDADANIA E ALTERNATIVAS PENAIS', tipo_ug: 'DIRETORIA', processo_sei_ug: '08016.015872/2026-52', portaria_geral: 'Despacho 2490 (36223813)', ativo: 'S' },
+    { id_ug: 6, codigo_ug: 200600, sigla_ug: 'PFCG', nome_ug: 'PENITENCIÁRIA FEDERAL EM CAMPO GRANDE', tipo_ug: 'PENITENCIARIA_FEDERAL', processo_sei_ug: '08118.003298/2026-41', portaria_geral: 'Portaria 255 (SEI nº 36185723) e Errata (SEI nº 36320213)', ativo: 'S' },
+    { id_ug: 7, codigo_ug: 200601, sigla_ug: 'PFCAT', nome_ug: 'PENITENCIÁRIA FEDERAL EM CATANDUVAS', tipo_ug: 'PENITENCIARIA_FEDERAL', processo_sei_ug: '08117.003739/2026-15', portaria_geral: 'Portaria 135 (SEI nº 36373976)', ativo: 'S' },
+    { id_ug: 8, codigo_ug: 200603, sigla_ug: 'PFPV', nome_ug: 'PENITENCIÁRIA FEDERAL EM PORTO VELHO', tipo_ug: 'PENITENCIARIA_FEDERAL', processo_sei_ug: '08120.005817/2026-67', portaria_geral: 'Portaria 244 (36416225)', ativo: 'S' },
+    { id_ug: 9, codigo_ug: 200602, sigla_ug: 'PFMOS', nome_ug: 'PENITENCIÁRIA FEDERAL EM MOSSORÓ', tipo_ug: 'PENITENCIARIA_FEDERAL', processo_sei_ug: '08119.003612/2026-86', portaria_geral: 'Portaria 175 (36416194)', ativo: 'S' },
+    { id_ug: 10, codigo_ug: 200604, sigla_ug: 'PFBRA', nome_ug: 'PENITENCIÁRIA FEDERAL EM BRASÍLIA', tipo_ug: 'PENITENCIARIA_FEDERAL', processo_sei_ug: '08016.015704/2026-67', portaria_geral: 'Portaria 211 (36385472)', ativo: 'S' }
+  ],
+
   obterTodas: function() {
-    const sheet = Database.getSheet(CONFIG.ABAS.UG, true);
-    if (!sheet || sheet.getLastRow() < 2) return [];
+    let sheet = Database.getSheet(CONFIG.ABAS.UG, true);
+    if (!sheet) return [];
+
+    let precisaRestaurar = false;
+    if (sheet.getLastRow() < 2) {
+      precisaRestaurar = true;
+    } else {
+      const data = sheet.getDataRange().getValues();
+      const headers = data[0].map(h => String(h).trim().toLowerCase());
+      const idxSigla = headers.indexOf('sigla_ug') !== -1 ? headers.indexOf('sigla_ug') : headers.indexOf('sigla');
+      const idxNome = headers.indexOf('nome_ug') !== -1 ? headers.indexOf('nome_ug') : headers.indexOf('nome');
+
+      if (idxSigla === -1) {
+        precisaRestaurar = true;
+      } else {
+        const siglasPresentes = data.slice(1).map(r => String(r[idxSigla] || '').trim().toUpperCase());
+        const nomesPresentes = data.slice(1).map(r => String(r[idxNome] || '').trim().toUpperCase());
+
+        // Se contiver siglas espúrias (GAB, DIRIN, DISPF), faltar oficiais (DPPF, DIPEN, DICAP), ou nome corrompido
+        const temEspurias = siglasPresentes.includes('GAB') || siglasPresentes.includes('DIRIN') || siglasPresentes.includes('DISPF');
+        const faltamOficiais = !siglasPresentes.includes('DPPF') || !siglasPresentes.includes('DIPEN') || !siglasPresentes.includes('DICAP');
+        const direxNomeErrado = nomesPresentes.some(n => n.includes('EXECUÇÃO PENAL'));
+
+        if (temEspurias || faltamOficiais || direxNomeErrado) {
+          precisaRestaurar = true;
+        }
+      }
+    }
+
+    if (precisaRestaurar) {
+      this.restaurarUgsPadrao(sheet);
+    }
 
     const data = sheet.getDataRange().getValues();
     const headers = data[0];
@@ -468,7 +514,7 @@ const UgModel = {
       obj.id = obj.ug_id;
       obj.codigo = obj.codigo_ug || obj.codigo_siafi || '';
       obj.codigo_siafi = obj.codigo;
-      obj.sigla = String(obj.sigla_ug || obj.sigla || '').trim();
+      obj.sigla = String(obj.sigla_ug || obj.sigla || '').trim().toUpperCase();
       obj.nome = String(obj.nome_ug || obj.nome || '').trim();
       obj.tipo = String(obj.tipo_ug || obj.tipo || 'DIRETORIA').trim();
       obj.processo_sei = String(obj.processo_sei_ug || obj.processo_sei || '').trim();
@@ -476,6 +522,93 @@ const UgModel = {
       obj.ativo = String(obj.ativo || 'S').trim().toUpperCase();
       return obj;
     });
+  },
+
+  restaurarUgsPadrao: function(sheet) {
+    if (!sheet) {
+      sheet = Database.getSheet(CONFIG.ABAS.UG, true);
+    }
+    if (!sheet) return { sucesso: false, erro: 'Planilha não encontrada' };
+
+    // Preserva eventuais UGs adicionais customizadas cadastradas pelo usuário
+    const ugsCustomizadas = [];
+    if (sheet.getLastRow() >= 2) {
+      const data = sheet.getDataRange().getValues();
+      const headers = data[0].map(h => String(h).trim().toLowerCase());
+      const idxSigla = headers.indexOf('sigla_ug') !== -1 ? headers.indexOf('sigla_ug') : headers.indexOf('sigla');
+      const idxNome = headers.indexOf('nome_ug') !== -1 ? headers.indexOf('nome_ug') : headers.indexOf('nome');
+      const idxCod = headers.indexOf('codigo_ug') !== -1 ? headers.indexOf('codigo_ug') : headers.indexOf('codigo');
+      const idxTipo = headers.indexOf('tipo_ug') !== -1 ? headers.indexOf('tipo_ug') : headers.indexOf('tipo');
+      const idxProc = headers.indexOf('processo_sei_ug') !== -1 ? headers.indexOf('processo_sei_ug') : headers.indexOf('processo_sei');
+      const idxPort = headers.indexOf('portaria_geral') !== -1 ? headers.indexOf('portaria_geral') : headers.indexOf('portaria');
+      const idxAtivo = headers.indexOf('ativo');
+
+      const siglasPadrao = ['DIREX', 'DPPF', 'DIRPP', 'DIPEN', 'DICAP', 'PFCG', 'PFCAT', 'PFPV', 'PFMOS', 'PFBRA'];
+      const siglasIgnorar = ['GAB', 'DIRIN', 'DISPF', 'DDPF'];
+
+      data.slice(1).forEach(r => {
+        const s = String(r[idxSigla] || '').trim().toUpperCase();
+        if (s && !siglasPadrao.includes(s) && !siglasIgnorar.includes(s)) {
+          ugsCustomizadas.push([
+            0, // id será recalculado
+            r[idxCod] || '',
+            s,
+            String(r[idxNome] || s).trim().toUpperCase(),
+            r[idxTipo] || 'DIRETORIA',
+            r[idxProc] || '',
+            r[idxPort] || '',
+            idxAtivo !== -1 ? (r[idxAtivo] || 'S') : 'S'
+          ]);
+        }
+      });
+    }
+
+    // Limpa a aba e recria com a estrutura e dados oficiais
+    sheet.clear();
+    const headers = ['id_ug', 'codigo_ug', 'sigla_ug', 'nome_ug', 'tipo_ug', 'processo_sei_ug', 'portaria_geral', 'ativo'];
+    sheet.appendRow(headers);
+
+    const rows = this.UGS_OFICIAIS_PADRAO.map(u => [
+      u.id_ug, u.codigo_ug, u.sigla_ug, u.nome_ug, u.tipo_ug, u.processo_sei_ug, u.portaria_geral, u.ativo
+    ]);
+
+    let nextId = 11;
+    ugsCustomizadas.forEach(custom => {
+      custom[0] = nextId++;
+      rows.push(custom);
+    });
+
+    sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
+
+    // Formatação visual da aba no Sheets
+    const headerRange = sheet.getRange(1, 1, 1, headers.length);
+    headerRange.setBackground('#002B49');
+    headerRange.setFontColor('#FFFFFF');
+    headerRange.setFontWeight('bold');
+    sheet.setFrozenRows(1);
+    try { sheet.autoResizeColumns(1, headers.length); } catch (e) {}
+
+    // Sincroniza também as UORGs na tb_inventario_acompanhamento se houver 'DISPF' ou 'DDPF'
+    try {
+      const invSheet = Database.getSheet(CONFIG.ABAS.INVENTARIO, false);
+      if (invSheet && invSheet.getLastRow() >= 2) {
+        const invData = invSheet.getDataRange().getValues();
+        const headersInv = invData[0].map(h => String(h).trim().toLowerCase());
+        const colUgSigla = headersInv.indexOf('ug_sigla') + 1;
+        if (colUgSigla > 0) {
+          for (let r = 1; r < invData.length; r++) {
+            const val = String(invData[r][colUgSigla - 1] || '').trim().toUpperCase();
+            if (val === 'DISPF' || val === 'DDPF') {
+              invSheet.getRange(r + 1, colUgSigla).setValue('DPPF');
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Aviso ao sincronizar siglas de UORG para DPPF:', e);
+    }
+
+    return { sucesso: true, totalUgs: rows.length };
   },
 
   obterPorSigla: function(sigla) {

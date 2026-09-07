@@ -11,12 +11,22 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
+  const normalizarUorgs = (lista) => (lista || []).map(it => {
+    if (it.ug_sigla === 'DISPF' || it.ug_sigla === 'DDPF') it.ug_sigla = 'DPPF';
+    return it;
+  });
+
+  const normalizarUgs = (lista) => (lista || []).map(u => {
+    if (u.sigla === 'DISPF' || u.sigla === 'DDPF') u.sigla = 'DPPF';
+    return u;
+  });
+
   // Estado da Aplicação
   const state = {
-    allData: rawData.inventario,
-    filteredData: [...rawData.inventario],
+    allData: normalizarUorgs(rawData.inventario),
+    filteredData: normalizarUorgs([...rawData.inventario]),
     cronograma: rawData.cronograma,
-    ugs: rawData.ugs,
+    ugs: normalizarUgs(rawData.ugs),
     currentView: 'dashboard', // 'dashboard' | 'gestao'
     selectedUorgId: null,
     filters: {
@@ -235,10 +245,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (Array.isArray(res.inventario) && res.inventario.length > 0) {
-          state.allData = res.inventario;
+          state.allData = normalizarUorgs(res.inventario);
         }
         if (Array.isArray(res.ugs) && res.ugs.length > 0) {
-          state.ugs = res.ugs;
+          state.ugs = normalizarUgs(res.ugs);
         }
         if (Array.isArray(res.ciclos) && res.ciclos.length > 0) {
           state.ciclos = res.ciclos;
@@ -382,6 +392,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Formulário de Cadastro de UGs
     elements.btnNovaUg.addEventListener('click', () => abrirFormNovaUg());
+    const btnRestaurarUgs = document.getElementById('btn-restaurar-ugs-padrao');
+    if (btnRestaurarUgs) {
+      btnRestaurarUgs.addEventListener('click', () => restaurarUgsPadraoAction());
+    }
     elements.btnCancelarUg.addEventListener('click', () => fecharFormNovaUg());
     elements.formUgCadastro.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -1129,7 +1143,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const tr = document.createElement('tr');
       const tipoBadge = ug.tipo === 'PENITENCIARIA_FEDERAL'
         ? '<span class="badge-status-pill badge-spf">SPF (Federal)</span>'
-        : '<span class="badge-status-pill badge-sede">Sede (DIREX)</span>';
+        : '<span class="badge-status-pill badge-sede">Sede (Diretoria)</span>';
 
       const procHtml = ug.processo_sei 
         ? `<span class="sei-link" style="text-decoration:none">${ug.processo_sei}</span>`
@@ -1294,6 +1308,59 @@ document.addEventListener('DOMContentLoaded', () => {
         .excluirUg(sigla);
     } else {
       aplicarExclusao();
+    }
+  }
+
+  async function restaurarUgsPadraoAction() {
+    const confirmed = await showConfirmDialog({
+      title: 'Restaurar Catálogo Oficial de UGs',
+      message: 'Esta ação restaurará o catálogo de Unidades Gestoras para o padrão consolidado oficial do modelo SENAPPEN 2026 (5 Diretorias da Sede e 5 Penitenciárias Federais).',
+      details: 'As 10 UGs oficiais serão restauradas com suas siglas, nomes, códigos SIAFI e processos originais. UGs extras criadas manualmente serão preservadas.',
+      confirmText: 'Sim, Restaurar Modelo',
+      cancelText: 'Cancelar',
+      type: 'primary'
+    });
+
+    if (!confirmed) return;
+
+    const btn = document.getElementById('btn-restaurar-ugs-padrao');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳</span> Restaurando...';
+    }
+
+    const aplicarRestauracao = () => {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<span>🔄</span> Restaurar UGs do Modelo';
+      }
+      showToast('✓ Catálogo de UGs restaurado com o padrão oficial SENAPPEN!', 'success');
+      carregarDadosDoBancoGoogle();
+    };
+
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (res && res.status === 'success') {
+            aplicarRestauracao();
+          } else {
+            if (btn) {
+              btn.disabled = false;
+              btn.innerHTML = '<span>🔄</span> Restaurar UGs do Modelo';
+            }
+            showToast('Erro ao restaurar UGs: ' + (res.mensagem || 'Falha desconhecida'), 'error');
+          }
+        })
+        .withFailureHandler((err) => {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<span>🔄</span> Restaurar UGs do Modelo';
+          }
+          showToast('Erro de comunicação: ' + err.toString(), 'error');
+        })
+        .restaurarUgsPadrao();
+    } else {
+      aplicarRestauracao();
     }
   }
 
