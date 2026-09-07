@@ -146,15 +146,40 @@
         </div>
       </section>
 
-      <!-- Comparativo por Diretoria / Penitenciária Federal -->
-      <section class="ug-comparison-section">
-        <div class="section-title">
-          <span>🏛️</span> Andamento por Diretoria / Unidade Gestora
+      <!-- Comparativo por Diretoria / Penitenciária Federal (Separados por Grupo) -->
+    <section class="ug-comparison-section">
+      <div class="section-title" style="margin-bottom: 18px;">
+        <span>🏛️</span> Andamento por Diretoria / Unidade Gestora
+      </div>
+
+      <!-- Bloco 1: Diretorias da Sede -->
+      <div class="ug-block">
+        <div class="ug-block-header">
+          <div class="ug-block-title">
+            <span class="ug-block-icon">🏢</span>
+            <span>Diretorias da Sede (SENAPPEN Central)</span>
+          </div>
+          <span class="ug-block-meta" id="ug-meta-diretorias">5 UGs • 69 UORGs</span>
         </div>
-        <div class="ug-grid" id="ug-grid">
+        <div class="ug-grid" id="ug-grid-diretorias">
           <!-- Renderizado dinamicamente -->
         </div>
-      </section>
+      </div>
+
+      <!-- Bloco 2: Penitenciárias Federais -->
+      <div class="ug-block" style="margin-top: 20px;">
+        <div class="ug-block-header">
+          <div class="ug-block-title">
+            <span class="ug-block-icon">🔒</span>
+            <span>Penitenciárias Federais (Sistema Penitenciário Federal)</span>
+          </div>
+          <span class="ug-block-meta" id="ug-meta-pf">5 UGs • 155 UORGs</span>
+        </div>
+        <div class="ug-grid" id="ug-grid-pf">
+          <!-- Renderizado dinamicamente -->
+        </div>
+      </div>
+    </section>
 
       <!-- Controles de Filtro e Busca -->
       <section class="controls-card">

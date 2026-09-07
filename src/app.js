@@ -56,7 +56,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Cronograma & UGs
     timelineTrack: document.getElementById('timeline-track'),
-    ugGrid: document.getElementById('ug-grid'),
+    ugGridDiretorias: document.getElementById('ug-grid-diretorias'),
+    ugGridPf: document.getElementById('ug-grid-pf'),
+    ugMetaDiretorias: document.getElementById('ug-meta-diretorias'),
+    ugMetaPf: document.getElementById('ug-meta-pf'),
 
     // Filtros Dashboard
     searchInput: document.getElementById('search-input'),
@@ -354,11 +357,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderUgCards() {
-    elements.ugGrid.innerHTML = '';
+    if (elements.ugGridDiretorias) elements.ugGridDiretorias.innerHTML = '';
+    if (elements.ugGridPf) elements.ugGridPf.innerHTML = '';
+
     const ugGroups = {};
     state.ugs.forEach(ug => {
       ugGroups[ug.sigla] = { meta: ug, total: 0, naoIniciado: 0, emAndamento: 0, processado: 0 };
     });
+
+    let totalUorgsDiretoria = 0;
+    let totalUorgsPf = 0;
+    let ugsComDadosDiretoria = 0;
+    let ugsComDadosPf = 0;
 
     state.filteredData.forEach(item => {
       if (ugGroups[item.ug_sigla]) {
@@ -366,18 +376,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (item.status_simplificado === 'Não iniciado') ugGroups[item.ug_sigla].naoIniciado++;
         else if (item.status_simplificado === 'Em andamento') ugGroups[item.ug_sigla].emAndamento++;
         else if (item.status_simplificado === 'Processado') ugGroups[item.ug_sigla].processado++;
+
+        if (item.ug_tipo === 'DIRETORIA') totalUorgsDiretoria++;
+        else totalUorgsPf++;
       }
     });
 
     Object.values(ugGroups).forEach(ug => {
       if (ug.total === 0) return;
 
+      const isDiretoria = ug.meta.tipo === 'DIRETORIA';
+      if (isDiretoria) ugsComDadosDiretoria++;
+      else ugsComDadosPf++;
+
       const card = document.createElement('div');
       card.className = `ug-card ${state.filters.ug === ug.meta.sigla ? 'selected' : ''}`;
       const pctEmAnd = ((ug.emAndamento / ug.total) * 100).toFixed(0);
       const pctNaoIni = ((ug.naoIniciado / ug.total) * 100).toFixed(0);
       const pctProc = ((ug.processado / ug.total) * 100).toFixed(0);
-      const tipoBadge = ug.meta.tipo === 'DIRETORIA' ? 'Sede' : 'Penitenciária';
+      const tipoBadge = isDiretoria ? 'Sede' : 'Penitenciária Federal';
 
       card.innerHTML = `
         <div class="ug-card-title-row">
@@ -403,8 +420,20 @@ document.addEventListener('DOMContentLoaded', () => {
         applyFilters();
       });
 
-      elements.ugGrid.appendChild(card);
+      if (isDiretoria && elements.ugGridDiretorias) {
+        elements.ugGridDiretorias.appendChild(card);
+      } else if (!isDiretoria && elements.ugGridPf) {
+        elements.ugGridPf.appendChild(card);
+      }
     });
+
+    // Atualiza badges de cabeçalho dos blocos
+    if (elements.ugMetaDiretorias) {
+      elements.ugMetaDiretorias.textContent = `${ugsComDadosDiretoria} UGs • ${totalUorgsDiretoria} UORGs`;
+    }
+    if (elements.ugMetaPf) {
+      elements.ugMetaPf.textContent = `${ugsComDadosPf} UGs • ${totalUorgsPf} UORGs`;
+    }
   }
 
   function renderTable() {

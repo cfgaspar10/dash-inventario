@@ -440,7 +440,7 @@ body {
 .legend-dot.em-andamento { background: var(--status-em-andamento); }
 .legend-dot.processado { background: var(--status-processado); }
 
-/* UGs Grid */
+/* UGs Grid e Blocos Agrupados */
 .ug-comparison-section {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -450,11 +450,48 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
+.ug-block {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+}
+
+.ug-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.ug-block-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ug-block-icon {
+  font-size: 16px;
+}
+
+.ug-block-meta {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--primary-subtle);
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+}
+
 .ug-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 14px;
-  margin-top: 16px;
 }
 
 .ug-card {

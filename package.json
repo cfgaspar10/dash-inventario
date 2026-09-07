@@ -4,11 +4,11 @@
   "description": "Painel de Acompanhamento do Inventário Anual SENAPPEN 2026",
   "scripts": {
     "start": "python3 -m http.server 3000",
-    "build:gas": "python3 -c \"import os; ...\"",
     "push": "clasp push -f",
     "pull": "clasp pull",
     "deploy": "clasp deploy",
-    "open": "clasp open"
+    "open:script": "clasp open-script",
+    "open:app": "clasp open-web-app"
   },
   "keywords": [
     "senappen",
