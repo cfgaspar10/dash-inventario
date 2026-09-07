@@ -163,6 +163,8 @@ document.addEventListener('DOMContentLoaded', () => {
     ugSelect: document.getElementById('ug-select'),
     statusSelect: document.getElementById('status-select'),
     btnReset: document.getElementById('btn-reset'),
+    btnResetTop: document.getElementById('btn-reset-top'),
+    btnResetUg: document.getElementById('btn-reset-ug'),
     btnExport: document.getElementById('btn-export'),
 
     // Tabela Dashboard
@@ -210,6 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Carga inicial rápida com dados locais
     renderCronograma();
     populateUgSelects();
+    populateHeaderExercicioSelect();
     preencherSelectsConfig();
     renderCiclosTable();
     renderCronogramaTable();
@@ -223,6 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function sincronizarInterfaceComDados() {
     renderCronograma();
     populateUgSelects();
+    populateHeaderExercicioSelect();
     preencherSelectsConfig();
     renderCiclosTable();
     renderCronogramaTable();
@@ -230,6 +234,74 @@ document.addEventListener('DOMContentLoaded', () => {
     applyFilters();
     if (state.currentConfigSubtab === 'ugs') renderConfigUgsTable();
     if (state.currentConfigSubtab === 'uorgs') renderConfigUorgsTable();
+  }
+
+  function populateHeaderExercicioSelect() {
+    const select = document.getElementById('header-exercicio-select');
+    if (!select) return;
+
+    select.innerHTML = '';
+    const ciclos = state.ciclos || [];
+    const listaCiclos = ciclos.length > 0 ? [...ciclos] : [
+      { ano_exercicio: 2026, ano: 2026, ativo: 'S', processo_sei_mae: '08016.007081/2026-59', oficio_circular: 'Ofício Circular nº /2026/DIREX (SEI 35011389)' }
+    ];
+
+    // Ordena do ano mais recente para o mais antigo
+    listaCiclos.sort((a, b) => {
+      const anoA = parseInt(a.ano_exercicio || a.ano, 10) || 0;
+      const anoB = parseInt(b.ano_exercicio || b.ano, 10) || 0;
+      return anoB - anoA;
+    });
+
+    // Ciclo padrão é o ativo ou o mais recente
+    let cicloPadrao = listaCiclos.find(c => c.ativo === 'S') || listaCiclos[0];
+
+    listaCiclos.forEach(c => {
+      const ano = c.ano_exercicio || c.ano;
+      const opt = document.createElement('option');
+      opt.value = ano;
+      opt.textContent = `${ano}${c.ativo === 'S' ? ' (Ativo)' : ''}`;
+      if (String(ano) === String(cicloPadrao.ano_exercicio || cicloPadrao.ano)) {
+        opt.selected = true;
+      }
+      select.appendChild(opt);
+    });
+
+    atualizarBadgesHeaderPorCiclo(cicloPadrao);
+
+    select.onchange = () => {
+      const anoSel = select.value;
+      const encontrado = listaCiclos.find(c => String(c.ano_exercicio || c.ano) === String(anoSel));
+      if (encontrado) {
+        state.ciclo = encontrado;
+        atualizarBadgesHeaderPorCiclo(encontrado);
+        showToast(`Exercício ${anoSel} selecionado no painel`, 'info');
+      }
+    };
+  }
+
+  function atualizarBadgesHeaderPorCiclo(ciclo) {
+    if (!ciclo) return;
+    const oficioBadge = document.getElementById('header-oficio-badge');
+    const procMae = document.getElementById('header-processo-mae');
+
+    const oficioTexto = ciclo.oficio_circular || `Ofício Circular nº /${ciclo.ano_exercicio || ciclo.ano}/DIREX (SEI 35011389)`;
+    const procTexto = ciclo.processo_sei_mae || ciclo.processo_mae || '08016.007081/2026-59';
+
+    if (oficioBadge) oficioBadge.textContent = oficioTexto;
+    if (procMae) {
+      procMae.innerHTML = `
+        <span class="sei-copy-wrapper" data-sei="${procTexto}">
+          <span>${procTexto}</span>
+          <button type="button" class="btn-copy-sei" title="Copiar processo SEI" aria-label="Copiar processo SEI">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+        </span>
+      `;
+    }
   }
 
   function carregarDadosDoBancoGoogle() {
@@ -458,8 +530,52 @@ document.addEventListener('DOMContentLoaded', () => {
       applyFilters();
     });
 
-    elements.btnReset.addEventListener('click', resetFilters);
-    elements.btnExport.addEventListener('click', exportFilteredCsv);
+    if (elements.btnReset) elements.btnReset.addEventListener('click', resetFilters);
+    if (elements.btnResetTop) elements.btnResetTop.addEventListener('click', resetFilters);
+    if (elements.btnResetUg) elements.btnResetUg.addEventListener('click', resetFilters);
+    if (elements.btnExport) elements.btnExport.addEventListener('click', exportFilteredCsv);
+
+    // Cópia interativa e discreta do Processo SEI com feedback
+    document.addEventListener('click', (e) => {
+      const copyBtn = e.target.closest('.btn-copy-sei');
+      if (!copyBtn) return;
+      e.stopPropagation();
+      e.preventDefault();
+
+      const wrapper = copyBtn.closest('.sei-copy-wrapper');
+      const textToCopy = wrapper?.dataset?.sei || copyBtn.dataset?.sei || '';
+      if (!textToCopy) return;
+
+      const originalHtml = copyBtn.innerHTML;
+      const feedbackIcon = `
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      `;
+
+      const notifySuccess = () => {
+        copyBtn.classList.add('copied');
+        copyBtn.innerHTML = feedbackIcon;
+        copyBtn.setAttribute('title', 'Copiado!');
+        showToast(`✓ Processo SEI ${textToCopy} copiado!`, 'success');
+
+        setTimeout(() => {
+          copyBtn.classList.remove('copied');
+          copyBtn.innerHTML = originalHtml;
+          copyBtn.setAttribute('title', 'Copiar processo SEI');
+        }, 1600);
+      };
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(textToCopy).then(notifySuccess).catch(() => {
+          fallbackCopyText(textToCopy);
+          notifySuccess();
+        });
+      } else {
+        fallbackCopyText(textToCopy);
+        notifySuccess();
+      }
+    });
 
     // Click nos Cards de KPI
     setupKpiCardClick('kpi-nao-iniciado', 'Não iniciado');
@@ -485,7 +601,17 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.btnCancelarGestao.addEventListener('click', () => {
       limparFormularioGestao();
       elements.gestaoSelectUorg.value = '';
+      switchView('dashboard');
     });
+
+    const btnVoltarDash = document.getElementById('btn-voltar-dashboard');
+    if (btnVoltarDash) {
+      btnVoltarDash.addEventListener('click', () => {
+        limparFormularioGestao();
+        elements.gestaoSelectUorg.value = '';
+        switchView('dashboard');
+      });
+    }
 
     // Modal
     elements.modalClose.addEventListener('click', closeModal);
@@ -604,6 +730,44 @@ document.addEventListener('DOMContentLoaded', () => {
     renderMetrics();
     renderUgCards();
     renderTable();
+  }
+
+  function fallbackCopyText(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.opacity = '0';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+    } catch (e) {
+      console.warn('Fallback copy failed', e);
+    }
+    document.body.removeChild(textArea);
+  }
+
+  function renderProcessoSeiWithCopy(proc, link = '', extraStyle = '') {
+    if (!proc) return '<span class="sei-empty">Não autuado</span>';
+    const procEscaped = String(proc).trim();
+    const linkHtml = link ? `
+      <a href="${link}" target="_blank" rel="noopener noreferrer" class="sei-link" title="Abrir no SEI">
+        ${procEscaped} ↗
+      </a>
+    ` : `<span class="sei-link" style="text-decoration:none">${procEscaped}</span>`;
+
+    return `
+      <span class="sei-copy-wrapper" data-sei="${procEscaped}" ${extraStyle ? `style="${extraStyle}"` : ''}>
+        ${linkHtml}
+        <button type="button" class="btn-copy-sei" title="Copiar processo SEI" aria-label="Copiar número do processo SEI">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+        </button>
+      </span>
+    `;
   }
 
   function renderMetrics() {
@@ -752,13 +916,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const statusClass = item.status_simplificado === 'Processado' ? 'processado' 
                         : (item.status_simplificado === 'Em andamento' ? 'em-andamento' : 'nao-iniciado');
 
-      const procHtml = item.processo_sei ? (
-        item.processo_sei_link ? `
-          <a href="${item.processo_sei_link}" target="_blank" rel="noopener noreferrer" class="sei-link" title="Abrir no SEI">
-            ${item.processo_sei} ↗
-          </a>
-        ` : `<span class="sei-link" style="text-decoration:none">${item.processo_sei}</span>`
-      ) : `<span class="sei-empty">Não autuado</span>`;
+      const procHtml = renderProcessoSeiWithCopy(item.processo_sei, item.processo_sei_link);
 
       const cautelaHtml = item.bens_acautelados_doc ? `
         <span style="font-size: 12px; color: #166534; font-weight: 500" title="${item.bens_acautelados_doc}">
@@ -858,18 +1016,21 @@ document.addEventListener('DOMContentLoaded', () => {
       google.script.run
         .withSuccessHandler((res) => {
           elements.btnSalvarGestao.disabled = false;
-          elements.btnSalvarGestao.textContent = '💾 Salvar Alterações no Banco';
+          elements.btnSalvarGestao.textContent = '💾 Salvar Alterações';
 
           if (res && res.status === 'success') {
             atualizarItemNoEstadoLocal(id, payload);
-            showToast('✓ UORG atualizada com sucesso na planilha db_inventario!', 'success');
+            limparFormularioGestao();
+            elements.gestaoSelectUorg.value = '';
+            showToast('✓ Informações da UORG atualizadas com sucesso!', 'success');
+            switchView('dashboard');
           } else {
             showToast('Erro ao salvar: ' + (res.mensagem || 'Erro desconhecido'), 'error');
           }
         })
         .withFailureHandler((err) => {
           elements.btnSalvarGestao.disabled = false;
-          elements.btnSalvarGestao.textContent = '💾 Salvar Alterações no Banco';
+          elements.btnSalvarGestao.textContent = '💾 Salvar Alterações';
           showToast('Erro de comunicação: ' + err.toString(), 'error');
         })
         .salvarUorg(payload);
@@ -877,9 +1038,12 @@ document.addEventListener('DOMContentLoaded', () => {
       // Modo local / preview
       setTimeout(() => {
         elements.btnSalvarGestao.disabled = false;
-        elements.btnSalvarGestao.textContent = '💾 Salvar Alterações no Banco';
+        elements.btnSalvarGestao.textContent = '💾 Salvar Alterações';
         atualizarItemNoEstadoLocal(id, payload);
-        showToast('✓ Alterações salvas com sucesso no banco de dados!', 'success');
+        limparFormularioGestao();
+        elements.gestaoSelectUorg.value = '';
+        showToast('✓ Informações da UORG atualizadas com sucesso!', 'success');
+        switchView('dashboard');
       }, 300);
     }
   }
@@ -1031,11 +1195,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="detail-row">
         <span class="detail-label">Processo SEI do Inventário</span>
         <div class="detail-value">
-          ${item.processo_sei ? (
-            item.processo_sei_link 
-              ? `<a href="${item.processo_sei_link}" target="_blank" class="sei-link" style="font-size:14px">${item.processo_sei} ↗</a>` 
-              : item.processo_sei
-          ) : 'Nenhum processo autuado'}
+          ${renderProcessoSeiWithCopy(item.processo_sei, item.processo_sei_link, 'font-size:14px')}
         </div>
       </div>
 
@@ -1055,7 +1215,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
         <button id="btn-modal-edit" class="btn-action btn-primary">
-          ✏️ Abrir no Módulo de Gestão para Edição
+          ✏️ Editar Dados da UORG
         </button>
       </div>
     `;
@@ -1146,7 +1306,7 @@ document.addEventListener('DOMContentLoaded', () => {
         : '<span class="badge-status-pill badge-sede">Sede (Diretoria)</span>';
 
       const procHtml = ug.processo_sei 
-        ? `<span class="sei-link" style="text-decoration:none">${ug.processo_sei}</span>`
+        ? renderProcessoSeiWithCopy(ug.processo_sei)
         : '<span class="sei-empty">Pendente</span>';
 
       tr.innerHTML = `
@@ -1605,9 +1765,12 @@ document.addEventListener('DOMContentLoaded', () => {
         ? '<span class="badge-status-pill badge-ativo">✓ Vigente / Ativo</span>'
         : '<span class="badge-status-pill badge-inativo">Histórico / Inativo</span>';
 
+      const procCiclo = c.processo_sei_mae || c.processo_mae;
+      const procCicloHtml = procCiclo ? renderProcessoSeiWithCopy(procCiclo) : '-';
+
       tr.innerHTML = `
         <td style="font-weight: 700; color: var(--primary); font-size: 15px">${c.ano_exercicio || c.ano}</td>
-        <td style="font-weight: 500">${c.processo_sei_mae || c.processo_mae || '-'}</td>
+        <td style="font-weight: 500">${procCicloHtml}</td>
         <td style="white-space: nowrap">${formatarDataPtBr(c.data_limite_cautela)}</td>
         <td style="white-space: nowrap">${formatarDataPtBr(c.data_limite_final)}</td>
         <td><span class="badge-status-pill badge-sede">${c.status_ciclo || 'EM_ANDAMENTO'}</span></td>

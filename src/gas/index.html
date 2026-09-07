@@ -13,13 +13,13 @@
     <!-- Navegação Principal (Tabs MVC) -->
     <nav class="main-nav">
       <button class="nav-tab active" id="tab-dashboard">
-        <span>📊</span> Painel Executivo (Dashboard)
+        <span>📊</span> Painel - Dashboard
       </button>
-      <button class="nav-tab" id="tab-gestao">
-        <span>📝</span> Módulo de Gestão Operacional (Edição de Dados)
+      <button class="nav-tab" id="tab-gestao" style="display: none;">
+        <span>📝</span> Edição de UORG
       </button>
       <button class="nav-tab" id="tab-config">
-        <span>⚙️</span> Administração & Configurações
+        <span>⚙️</span> Administração
       </button>
     </nav>
 
@@ -29,17 +29,33 @@
         <div>
           <div class="header-badges">
             <span class="badge-tag highlight">SENAPPEN / MJSP</span>
-            <span class="badge-tag">Exercício 2026</span>
-            <span class="badge-tag">Ofício Circular nº /2026/DIREX (SEI 35011389)</span>
+            <div class="header-exercicio-wrapper">
+              <span class="header-exercicio-icon">📅</span>
+              <label for="header-exercicio-select" class="header-exercicio-label">Exercício:</label>
+              <select id="header-exercicio-select" class="header-exercicio-select">
+                <!-- Preenchido dinamicamente pelo JavaScript -->
+              </select>
+            </div>
+            <span class="badge-tag" id="header-oficio-badge">Ofício Circular nº /2026/DIREX (SEI 35011389)</span>
           </div>
           <h1 class="header-title">Sistema de Gestão do Inventário Anual</h1>
           <p class="header-subtitle">
-            Acompanhamento e governança das 224 UORGs nas fases <strong>Não iniciado</strong>, <strong>Em andamento</strong> e <strong>Processado</strong> com alimentação controlada no banco de dados.
+            Acompanhamento e governança do inventário patrimonial das unidades nas fases <strong>Não iniciado</strong>, <strong>Em andamento</strong> e <strong>Processado</strong>.
           </p>
         </div>
         <div class="header-processo">
           <span class="label">Processo Geral SENAPPEN</span>
-          <span class="value">08016.007081/2026-59</span>
+          <span class="value" id="header-processo-mae">
+            <span class="sei-copy-wrapper" data-sei="08016.007081/2026-59">
+              <span>08016.007081/2026-59</span>
+              <button type="button" class="btn-copy-sei" title="Copiar processo SEI" aria-label="Copiar processo SEI">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
+            </span>
+          </span>
         </div>
       </div>
     </header>
@@ -54,6 +70,9 @@
           <div class="section-title">
             <span>📅</span> Cronograma Oficial das Atividades de Inventário (SEI nº 35011389)
           </div>
+          <button id="btn-reset-top" class="btn-action btn-reset-top" title="Restaurar todos os filtros">
+            <span>↺</span> Limpar Filtros
+          </button>
         </div>
         <div class="timeline-track" id="timeline-track">
           <!-- Renderizado dinamicamente -->
@@ -151,8 +170,13 @@
 
       <!-- Comparativo por Diretoria / Penitenciária Federal (Separados por Grupo) -->
     <section class="ug-comparison-section">
-      <div class="section-title" style="margin-bottom: 18px;">
-        <span>🏛️</span> Andamento por Diretoria / Unidade Gestora
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+        <div class="section-title" style="margin-bottom: 0;">
+          <span>🏛️</span> Andamento por Diretoria / Unidade Gestora
+        </div>
+        <button id="btn-reset-ug" class="btn-action btn-reset-top" title="Restaurar todos os filtros">
+          <span>↺</span> Limpar Filtros
+        </button>
       </div>
 
       <!-- Bloco 1: Diretorias da Sede -->
@@ -189,7 +213,7 @@
         <div class="controls-row">
           <div class="search-box">
             <span class="search-icon">🔍</span>
-            <input type="text" id="search-input" class="search-input" placeholder="Buscar por código UORG, sigla, processo SEI ou diretoria...">
+            <input type="text" id="search-input" class="search-input" placeholder="Buscar por código UORG, setor/sigla, processo SEI ou diretoria...">
           </div>
 
           <div class="filter-group">
@@ -235,7 +259,7 @@
               <tr>
                 <th>UG</th>
                 <th>Código UORG</th>
-                <th>Sigla / Setor</th>
+                <th>SETOR/SIGLA</th>
                 <th>Status</th>
                 <th>Processo SEI</th>
                 <th>Bens Acautelados</th>
@@ -251,10 +275,20 @@
     </div>
 
     <!-- ====================================================================
-         MÓDULO 2: GESTÃO OPERACIONAL (ALIMENTAÇÃO E EDIÇÃO DE DADOS)
+         EDIÇÃO DE DADOS DA UORG
          ==================================================================== -->
     <div id="view-gestao" class="view-section">
       <div class="gestao-container">
+        <!-- Barra de Ação Superior -->
+        <div style="margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+          <button type="button" id="btn-voltar-dashboard" class="btn-action" style="background: #ffffff; border: 1px solid var(--border); font-weight: 600; display: flex; align-items: center; gap: 6px;">
+            <span>⬅️</span> Voltar ao Painel - Dashboard
+          </button>
+          <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">
+            Edição e Atualização de Dados Patrimoniais da UORG
+          </span>
+        </div>
+
         <!-- Card de Seleção da UORG -->
         <div class="gestao-card">
           <div class="section-title">
@@ -277,7 +311,7 @@
           <input type="hidden" id="form-uorg-id">
 
           <div class="section-title">
-            <span>✏️</span> Formulário de Alimentação e Atualização de Dados
+            <span>✏️</span> Atualização de Dados da UORG
           </div>
 
           <div class="gestao-form-grid">
@@ -295,7 +329,7 @@
 
             <!-- Sigla da UORG (Readonly) -->
             <div class="form-group">
-              <label class="form-label">Sigla / Setor</label>
+              <label class="form-label">SETOR/SIGLA</label>
               <input type="text" id="form-uorg-sigla" class="form-input" readonly>
             </div>
 
@@ -364,7 +398,7 @@
               Cancelar
             </button>
             <button type="submit" id="btn-salvar-gestao" class="btn-action btn-primary" style="padding: 10px 24px;">
-              💾 Salvar Alterações no Banco
+              💾 Salvar Alterações
             </button>
           </div>
         </form>
@@ -499,7 +533,7 @@
                 <input type="text" id="nova-uorg-codigo" class="form-input" placeholder="Ex: 35999">
               </div>
               <div class="form-group">
-                <label class="form-label" for="nova-uorg-sigla">Sigla / Nome do Setor</label>
+                <label class="form-label" for="nova-uorg-sigla">SETOR/SIGLA</label>
                 <input type="text" id="nova-uorg-sigla" class="form-input" placeholder="Ex: GAB-NOVO" required>
               </div>
               <div class="form-group">
@@ -515,7 +549,7 @@
 
           <!-- Filtro de UORGs na Gestão Estrutural -->
           <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-            <input type="text" id="config-uorg-search" class="search-input" placeholder="Filtrar por código ou sigla de UORG...">
+            <input type="text" id="config-uorg-search" class="search-input" placeholder="Filtrar por código ou setor/sigla de UORG...">
             <select id="config-uorg-filtro-ug" class="select-custom" style="min-width: 220px;"></select>
           </div>
 
@@ -526,7 +560,7 @@
                   <th>ID</th>
                   <th>UG</th>
                   <th>Código</th>
-                  <th>Sigla</th>
+                  <th>SETOR/SIGLA</th>
                   <th>Status do Inventário</th>
                   <th>Situação</th>
                   <th>Ações</th>
@@ -723,9 +757,10 @@
   <!-- Container de Toasts Flutuantes -->
   <div class="toast-container" id="toast-container"></div>
 
-  <!-- Scripts e Injeção Síncrona do Banco Google Sheets -->
+  <!-- Scripts -->
   <?!= include("data"); ?>
-  <script>
+    <script>
+    // Injeção direta de dados do backend (Server-Side Rendering SSR)
     (function() {
       try {
         var serverData = <?!= dadosIniciais ?>;

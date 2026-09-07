@@ -166,6 +166,52 @@ body {
   background: #3b82f6;
 }
 
+.header-exercicio-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.18);
+  padding: 3px 10px 3px 10px;
+  border-radius: var(--radius-full);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  font-size: 11px;
+  font-weight: 600;
+  color: #ffffff;
+  transition: background 0.2s ease;
+}
+
+.header-exercicio-wrapper:hover {
+  background: rgba(255, 255, 255, 0.26);
+}
+
+.header-exercicio-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #ffffff;
+}
+
+.header-exercicio-select {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+  letter-spacing: 0.05em;
+  padding: 0;
+}
+
+.header-exercicio-select option {
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 13px;
+  padding: 4px;
+}
+
 .header-title {
   font-size: 26px;
   font-weight: 800;
@@ -774,6 +820,96 @@ body {
   color: var(--text-light);
   font-size: 12px;
   font-style: italic;
+}
+
+/* ============================================================================
+ * PROCESSO SEI: WRAPPER E BOTÃO DE COPIAR COM HOVER DISCRETO
+ * ============================================================================ */
+.sei-copy-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  position: relative;
+  vertical-align: middle;
+}
+
+.btn-copy-sei {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 3px 5px;
+  color: var(--text-light);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.92);
+  transition: opacity 0.2s ease, transform 0.2s ease, color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+  line-height: 1;
+}
+
+/* Só fica visível quando o cursor passa sobre o elemento/linha do processo */
+.sei-copy-wrapper:hover .btn-copy-sei,
+.sei-copy-wrapper:focus-within .btn-copy-sei {
+  opacity: 0.85;
+  pointer-events: auto;
+  transform: scale(1);
+}
+
+.btn-copy-sei:hover {
+  opacity: 1 !important;
+  color: var(--primary);
+  background: #dbeafe;
+  border-color: #bfdbfe;
+}
+
+.btn-copy-sei.copied {
+  opacity: 1 !important;
+  color: var(--success) !important;
+  background: #dcfce7 !important;
+  border-color: #86efac !important;
+}
+
+/* Ajustes visuais no cabeçalho escuro */
+.header-processo .btn-copy-sei {
+  color: #93c5fd;
+}
+
+.header-processo .btn-copy-sei:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.header-processo .btn-copy-sei.copied {
+  color: #4ade80 !important;
+  background: rgba(74, 222, 128, 0.25) !important;
+  border-color: rgba(74, 222, 128, 0.5) !important;
+}
+
+/* Botão Limpar Filtros Superior */
+.btn-reset-top {
+  padding: 6px 14px;
+  font-size: 12px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-main);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.btn-reset-top:hover {
+  background: var(--bg-subtle);
+  border-color: var(--primary-light);
+  color: var(--primary);
 }
 
 /* ============================================================================
