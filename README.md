@@ -20,15 +20,26 @@ O processo de inventário anual envolve a identificação, acautelamento e prest
 
 ---
 
-## 🖥️ Dashboard Simplificado de Acompanhamento
+## 🖥️ Aplicação Integrada: Dashboard Executivo & Módulo de Gestão Operacional
 
-O sistema conta com um painel executivo direto, com três status fundamentais:
+A aplicação adota o padrão **MVC (Model-View-Controller)** com navegação em duas abas no topo:
+
+### 1. 📊 Painel Executivo (Dashboard)
 - 🔴 **Não iniciado:** 32 UORGs (14,3%) — Sem processo autuado ou comissão.
 - 🟡 **Em andamento:** 192 UORGs (85,7%) — Processos autuados e declarações de bens sendo instruídas.
 - 🟢 **Processado:** 0 UORGs (0,0%) — Relatórios finais concluídos (meta final do exercício).
 - ⏳ **Quanto Resta a Processar:** **224 UORGs (100%)** até o encerramento do exercício em 30/11/2026.
+- Linha do tempo oficial com as etapas e responsáveis do Ofício-Circular SEI nº 35011389.
+- Gráficos comparativos por Diretoria e Penitenciária Federal.
 
-Para visualizar localmente, basta abrir o arquivo [`index.html`](file:///Users/gaspar/apps/dash_inventario/index.html) diretamente em qualquer navegador ou acoplar via Google Apps Script (`src/gas/Code.gs`).
+### 2. 📝 Módulo de Gestão Operacional (Alimentação Segura)
+- **Elimina a necessidade de editar a planilha diretamente**, prevenindo erros de digitação e exclusão de dados.
+- Permite selecionar qualquer uma das 224 UORGs e atualizar:
+  - Número e Link do Processo SEI
+  - Declaração de Bens Acautelados
+  - Relatório da UORG e Relatório Final da UG
+  - Status da Fase (`Não iniciado`, `Em andamento`, `Processado`)
+- Grava imediatamente na planilha `db_inventario` via `google.script.run` com registro automático de auditoria (data/hora e usuário editor).
 
 ---
 

@@ -1,19 +1,18 @@
 <script>
-// Se estiver rodando dentro do Google Apps Script com google.script.run disponível:
+// Bridge para carregar dados dinâmicos da planilha do GAS
 if (typeof google !== 'undefined' && google.script && google.script.run) {
   google.script.run.withSuccessHandler(function(response) {
     if (response && response.status === 'success' && response.dados && response.dados.length > 0) {
       console.log('Dados carregados dinamicamente da planilha via GAS:', response.dados.length);
       window.DASH_DATA.inventario = response.dados;
-      // Re-disparar evento para atualizar
-      window.dispatchEvent(new Event('dashDataUpdated'));
+      window.dispatchEvent(new Event('DOMContentLoaded'));
     }
   }).getInventarioData();
 }
 
 /**
  * Aplicação do Painel de Inventário SENAPPEN 2026
- * Focado na visão simplificada: Não iniciado, Em andamento, Processado
+ * Arquitetura MVC - Controla o Módulo Dashboard e o Módulo de Gestão Operacional
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -29,6 +28,8 @@ document.addEventListener('DOMContentLoaded', () => {
     filteredData: [...rawData.inventario],
     cronograma: rawData.cronograma,
     ugs: rawData.ugs,
+    currentView: 'dashboard', // 'dashboard' | 'gestao'
+    selectedUorgId: null,
     filters: {
       search: '',
       grupo: 'TODOS',
@@ -40,7 +41,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Elementos do DOM
   const elements = {
-    // KPIs
+    // Tabs de Navegação
+    tabDashboard: document.getElementById('tab-dashboard'),
+    tabGestao: document.getElementById('tab-gestao'),
+    viewDashboard: document.getElementById('view-dashboard'),
+    viewGestao: document.getElementById('view-gestao'),
+
+    // KPIs Dashboard
     kpiTotal: document.getElementById('kpi-total-val'),
     kpiNaoIniciadoVal: document.getElementById('kpi-nao-iniciado-val'),
     kpiNaoIniciadoPct: document.getElementById('kpi-nao-iniciado-pct'),
@@ -59,13 +66,11 @@ document.addEventListener('DOMContentLoaded', () => {
     legEmAndamento: document.getElementById('leg-em-andamento-txt'),
     legProcessado: document.getElementById('leg-processado-txt'),
 
-    // Cronograma
+    // Cronograma & UGs
     timelineTrack: document.getElementById('timeline-track'),
-
-    // Cards por UG
     ugGrid: document.getElementById('ug-grid'),
 
-    // Controles
+    // Filtros Dashboard
     searchInput: document.getElementById('search-input'),
     grupoSelect: document.getElementById('grupo-select'),
     ugSelect: document.getElementById('ug-select'),
@@ -73,33 +78,50 @@ document.addEventListener('DOMContentLoaded', () => {
     btnReset: document.getElementById('btn-reset'),
     btnExport: document.getElementById('btn-export'),
 
-    // Tabela
+    // Tabela Dashboard
     tableBody: document.getElementById('table-body'),
     tableCount: document.getElementById('table-count'),
+
+    // Formulário do Módulo de Gestão
+    gestaoSelectUorg: document.getElementById('gestao-select-uorg'),
+    gestaoForm: document.getElementById('gestao-form'),
+    inputFormId: document.getElementById('form-uorg-id'),
+    inputFormUg: document.getElementById('form-uorg-ug'),
+    inputFormCodigo: document.getElementById('form-uorg-codigo'),
+    inputFormSigla: document.getElementById('form-uorg-sigla'),
+    inputFormProc: document.getElementById('form-uorg-proc'),
+    inputFormProcLink: document.getElementById('form-uorg-proc-link'),
+    inputFormCautela: document.getElementById('form-uorg-cautela'),
+    inputFormRelUorg: document.getElementById('form-uorg-rel-uorg'),
+    inputFormRelFin: document.getElementById('form-uorg-rel-fin'),
+    selectFormStatus: document.getElementById('form-uorg-status'),
+    btnSalvarGestao: document.getElementById('btn-salvar-gestao'),
+    btnCancelarGestao: document.getElementById('btn-cancelar-gestao'),
 
     // Modal
     modalOverlay: document.getElementById('modal-overlay'),
     modalTitle: document.getElementById('modal-title'),
     modalSubtitle: document.getElementById('modal-subtitle'),
     modalBody: document.getElementById('modal-body'),
-    modalClose: document.getElementById('modal-close')
+    modalClose: document.getElementById('modal-close'),
+
+    // Toast
+    toastContainer: document.getElementById('toast-container')
   };
 
-  // 1. Inicializar Selects e Cronograma
+  // Inicialização
   function init() {
     renderCronograma();
-    populateUgSelect();
+    populateUgSelects();
     attachEvents();
     applyFilters();
   }
 
-  // Renderiza a régua oficial do cronograma (Ofício Circular SEI 35011389)
   function renderCronograma() {
     elements.timelineTrack.innerHTML = '';
     state.cronograma.forEach(item => {
       const el = document.createElement('div');
       el.className = `timeline-item ${item.status}`;
-      
       const statusIcon = item.status === 'concluido' ? '✓' : (item.status === 'em_andamento' ? '⏳' : '📅');
       const statusLabel = item.status === 'concluido' ? 'Concluído' : (item.status === 'em_andamento' ? 'Em curso' : 'Previsto');
 
@@ -115,8 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Preenche o seletor de UGs
-  function populateUgSelect() {
+  function populateUgSelects() {
     elements.ugSelect.innerHTML = '<option value="TODAS">Todas as Diretorias/UGs</option>';
     state.ugs.forEach(ug => {
       const opt = document.createElement('option');
@@ -124,10 +145,26 @@ document.addEventListener('DOMContentLoaded', () => {
       opt.textContent = `${ug.sigla} — ${ug.nome}`;
       elements.ugSelect.appendChild(opt);
     });
+
+    populateGestaoUorgSelect();
   }
 
-  // Escutadores de Eventos
+  function populateGestaoUorgSelect() {
+    elements.gestaoSelectUorg.innerHTML = '<option value="">-- Selecione uma UORG para visualizar e editar --</option>';
+    state.allData.forEach(item => {
+      const opt = document.createElement('option');
+      opt.value = item.id;
+      opt.textContent = `[${item.ug_sigla}] ${item.uorg_sigla} (UORG: ${item.uorg_codigo || '-'}) — Status: ${item.status_simplificado}`;
+      elements.gestaoSelectUorg.appendChild(opt);
+    });
+  }
+
   function attachEvents() {
+    // Alternância de Abas (MVC Views)
+    elements.tabDashboard.addEventListener('click', () => switchView('dashboard'));
+    elements.tabGestao.addEventListener('click', () => switchView('gestao'));
+
+    // Filtros Dashboard
     elements.searchInput.addEventListener('input', (e) => {
       state.filters.search = e.target.value.toLowerCase().trim();
       applyFilters();
@@ -135,7 +172,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     elements.grupoSelect.addEventListener('change', (e) => {
       state.filters.grupo = e.target.value;
-      // Ajustar select de UG para corresponder ao grupo
       filterUgSelectOptions(e.target.value);
       applyFilters();
     });
@@ -155,13 +191,33 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.btnReset.addEventListener('click', resetFilters);
     elements.btnExport.addEventListener('click', exportFilteredCsv);
 
-    // Click nos Cards de KPI para filtrar direto
+    // Click nos Cards de KPI
     setupKpiCardClick('kpi-nao-iniciado', 'Não iniciado');
     setupKpiCardClick('kpi-em-andamento', 'Em andamento');
     setupKpiCardClick('kpi-processado', 'Processado');
     setupKpiCardClick('kpi-total', 'TODOS');
 
-    // Fechar Modal
+    // Módulo de Gestão: Seleção e Formulário
+    elements.gestaoSelectUorg.addEventListener('change', (e) => {
+      const id = parseInt(e.target.value, 10);
+      if (id) {
+        carregarFormularioGestao(id);
+      } else {
+        limparFormularioGestao();
+      }
+    });
+
+    elements.gestaoForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      salvarFormularioGestao();
+    });
+
+    elements.btnCancelarGestao.addEventListener('click', () => {
+      limparFormularioGestao();
+      elements.gestaoSelectUorg.value = '';
+    });
+
+    // Modal
     elements.modalClose.addEventListener('click', closeModal);
     elements.modalOverlay.addEventListener('click', (e) => {
       if (e.target === elements.modalOverlay) closeModal();
@@ -169,6 +225,21 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeModal();
     });
+  }
+
+  function switchView(viewName) {
+    state.currentView = viewName;
+    if (viewName === 'dashboard') {
+      elements.tabDashboard.classList.add('active');
+      elements.tabGestao.classList.remove('active');
+      elements.viewDashboard.classList.add('active');
+      elements.viewGestao.classList.remove('active');
+    } else {
+      elements.tabDashboard.classList.remove('active');
+      elements.tabGestao.classList.add('active');
+      elements.viewDashboard.classList.remove('active');
+      elements.viewGestao.classList.add('active');
+    }
   }
 
   function filterUgSelectOptions(grupo) {
@@ -188,7 +259,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Restaurar se ainda existir
     elements.ugSelect.value = elements.ugSelect.querySelector(`option[value="${currentUg}"]`) ? currentUg : 'TODAS';
     state.filters.ug = elements.ugSelect.value;
   }
@@ -212,8 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateKpiCardsHighlight() {
     ['kpi-total', 'kpi-nao-iniciado', 'kpi-em-andamento', 'kpi-processado'].forEach(id => {
-      const card = document.getElementById(id);
-      if (card) card.classList.remove('active-filter');
+      document.getElementById(id)?.classList.remove('active-filter');
     });
 
     if (state.activeKpiFilter === 'Não iniciado') {
@@ -236,10 +305,8 @@ document.addEventListener('DOMContentLoaded', () => {
     applyFilters();
   }
 
-  // 2. Aplicação dos Filtros e Recálculo
   function applyFilters() {
     state.filteredData = state.allData.filter(item => {
-      // Filtro Busca
       if (state.filters.search) {
         const term = state.filters.search;
         const matchesUorg = item.uorg_codigo && item.uorg_codigo.toLowerCase().includes(term);
@@ -249,20 +316,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!matchesUorg && !matchesSigla && !matchesProc && !matchesUg) return false;
       }
 
-      // Filtro Grupo
-      if (state.filters.grupo !== 'TODOS') {
-        if (item.ug_tipo !== state.filters.grupo) return false;
-      }
-
-      // Filtro UG
-      if (state.filters.ug !== 'TODAS') {
-        if (item.ug_sigla !== state.filters.ug) return false;
-      }
-
-      // Filtro Status
-      if (state.filters.status !== 'TODOS') {
-        if (item.status_simplificado !== state.filters.status) return false;
-      }
+      if (state.filters.grupo !== 'TODOS' && item.ug_tipo !== state.filters.grupo) return false;
+      if (state.filters.ug !== 'TODAS' && item.ug_sigla !== state.filters.ug) return false;
+      if (state.filters.status !== 'TODOS' && item.status_simplificado !== state.filters.status) return false;
 
       return true;
     });
@@ -272,12 +328,9 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTable();
   }
 
-  // 3. Renderização dos Indicadores / KPIs
   function renderMetrics() {
     const total = state.filteredData.length;
-    let naoIniciado = 0;
-    let emAndamento = 0;
-    let processado = 0;
+    let naoIniciado = 0, emAndamento = 0, processado = 0;
 
     state.filteredData.forEach(d => {
       if (d.status_simplificado === 'Não iniciado') naoIniciado++;
@@ -288,10 +341,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const pctNaoIniciado = total > 0 ? ((naoIniciado / total) * 100).toFixed(1) : '0.0';
     const pctEmAndamento = total > 0 ? ((emAndamento / total) * 100).toFixed(1) : '0.0';
     const pctProcessado = total > 0 ? ((processado / total) * 100).toFixed(1) : '0.0';
-
     const restanteParaProcessar = total - processado;
 
-    // Atualizar DOM
     elements.kpiTotal.textContent = total;
     elements.kpiNaoIniciadoVal.textContent = naoIniciado;
     elements.kpiNaoIniciadoPct.textContent = `${pctNaoIniciado}%`;
@@ -305,7 +356,6 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.kpiRestaVal.textContent = restanteParaProcessar;
     elements.kpiRestaSubtitle.textContent = `${((restanteParaProcessar / (total || 1)) * 100).toFixed(1)}% do escopo restante`;
 
-    // Barra de Progresso
     elements.segNaoIniciado.style.width = `${pctNaoIniciado}%`;
     elements.segEmAndamento.style.width = `${pctEmAndamento}%`;
     elements.segProcessado.style.width = `${pctProcessado}%`;
@@ -315,20 +365,11 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.legProcessado.textContent = `Processado: ${processado} (${pctProcessado}%)`;
   }
 
-  // 4. Renderização dos Cards Comparativos por UG
   function renderUgCards() {
     elements.ugGrid.innerHTML = '';
-
-    // Agrupar por UG nos dados filtrados
     const ugGroups = {};
     state.ugs.forEach(ug => {
-      ugGroups[ug.sigla] = {
-        meta: ug,
-        total: 0,
-        naoIniciado: 0,
-        emAndamento: 0,
-        processado: 0
-      };
+      ugGroups[ug.sigla] = { meta: ug, total: 0, naoIniciado: 0, emAndamento: 0, processado: 0 };
     });
 
     state.filteredData.forEach(item => {
@@ -340,17 +381,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Renderizar cards das UGs que possuem dados no filtro
     Object.values(ugGroups).forEach(ug => {
       if (ug.total === 0) return;
 
       const card = document.createElement('div');
       card.className = `ug-card ${state.filters.ug === ug.meta.sigla ? 'selected' : ''}`;
-      
       const pctEmAnd = ((ug.emAndamento / ug.total) * 100).toFixed(0);
       const pctNaoIni = ((ug.naoIniciado / ug.total) * 100).toFixed(0);
       const pctProc = ((ug.processado / ug.total) * 100).toFixed(0);
-
       const tipoBadge = ug.meta.tipo === 'DIRETORIA' ? 'Sede' : 'Penitenciária';
 
       card.innerHTML = `
@@ -372,11 +410,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
 
       card.addEventListener('click', () => {
-        if (state.filters.ug === ug.meta.sigla) {
-          state.filters.ug = 'TODAS';
-        } else {
-          state.filters.ug = ug.meta.sigla;
-        }
+        state.filters.ug = (state.filters.ug === ug.meta.sigla) ? 'TODAS' : ug.meta.sigla;
         elements.ugSelect.value = state.filters.ug;
         applyFilters();
       });
@@ -385,7 +419,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 5. Renderização da Tabela de UORGs
   function renderTable() {
     elements.tableBody.innerHTML = '';
     elements.tableCount.textContent = `Exibindo ${state.filteredData.length} de ${state.allData.length} UORGs`;
@@ -393,7 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (state.filteredData.length === 0) {
       elements.tableBody.innerHTML = `
         <tr>
-          <td colspan="7" style="text-align: center; padding: 32px; color: var(--text-muted)">
+          <td colspan="8" style="text-align: center; padding: 32px; color: var(--text-muted)">
             Nenhuma UORG encontrada com os filtros selecionados.
           </td>
         </tr>
@@ -403,7 +436,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     state.filteredData.forEach(item => {
       const tr = document.createElement('tr');
-      
       const statusClass = item.status_simplificado === 'Processado' ? 'processado' 
                         : (item.status_simplificado === 'Em andamento' ? 'em-andamento' : 'nao-iniciado');
 
@@ -433,14 +465,20 @@ document.addEventListener('DOMContentLoaded', () => {
         </td>
         <td>${procHtml}</td>
         <td>${cautelaHtml}</td>
-        <td style="color: var(--text-muted); font-size: 12px">
-          ${item.comissao_designacao ? item.comissao_designacao.slice(0, 30) + '...' : '-'}
+        <td>
+          <button class="btn-action btn-edit-row" data-id="${item.id}" style="padding: 4px 10px; font-size: 12px">
+            ✏️ Editar
+          </button>
         </td>
       `;
 
+      tr.querySelector('.btn-edit-row').addEventListener('click', (e) => {
+        e.stopPropagation();
+        abrirEdicaoNoModuloGestao(item.id);
+      });
+
       tr.addEventListener('click', (e) => {
-        // Se não clicou no link do SEI, abre o modal
-        if (!e.target.closest('a')) {
+        if (!e.target.closest('a') && !e.target.closest('button')) {
           openModal(item);
         }
       });
@@ -449,7 +487,114 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 6. Modal de Detalhes da UORG
+  // ============================================================================
+  // MÓDULO DE GESTÃO OPERACIONAL (CONTROLLER FRONTEND)
+  // ============================================================================
+
+  function abrirEdicaoNoModuloGestao(id) {
+    switchView('gestao');
+    elements.gestaoSelectUorg.value = id;
+    carregarFormularioGestao(id);
+    elements.gestaoForm.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function carregarFormularioGestao(id) {
+    const item = state.allData.find(d => d.id === id);
+    if (!item) return;
+
+    state.selectedUorgId = id;
+    elements.inputFormId.value = item.id;
+    elements.inputFormUg.value = `${item.ug_sigla} — ${item.ug_nome}`;
+    elements.inputFormCodigo.value = item.uorg_codigo || '';
+    elements.inputFormSigla.value = item.uorg_sigla || '';
+    elements.inputFormProc.value = item.processo_sei || '';
+    elements.inputFormProcLink.value = item.processo_sei_link || '';
+    elements.inputFormCautela.value = item.bens_acautelados_doc || '';
+    elements.inputFormRelUorg.value = item.relatorio_uorg || '';
+    elements.inputFormRelFin.value = item.relatorio_final_ug || '';
+    elements.selectFormStatus.value = item.status_simplificado || 'Não iniciado';
+
+    elements.gestaoForm.style.display = 'block';
+  }
+
+  function limparFormularioGestao() {
+    state.selectedUorgId = null;
+    elements.gestaoForm.reset();
+    elements.gestaoForm.style.display = 'none';
+  }
+
+  function salvarFormularioGestao() {
+    const id = parseInt(elements.inputFormId.value, 10);
+    if (!id) return;
+
+    const payload = {
+      id: id,
+      processo_sei: elements.inputFormProc.value.trim(),
+      processo_sei_link: elements.inputFormProcLink.value.trim(),
+      bens_acautelados_doc: elements.inputFormCautela.value.trim(),
+      relatorio_uorg: elements.inputFormRelUorg.value.trim(),
+      relatorio_final_ug: elements.inputFormRelFin.value.trim(),
+      status_simplificado: elements.selectFormStatus.value
+    };
+
+    elements.btnSalvarGestao.disabled = true;
+    elements.btnSalvarGestao.textContent = 'Salvando...';
+
+    // Se estiver rodando dentro do Google Apps Script:
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler((res) => {
+          elements.btnSalvarGestao.disabled = false;
+          elements.btnSalvarGestao.textContent = '💾 Salvar Alterações no Banco';
+
+          if (res && res.status === 'success') {
+            atualizarItemNoEstadoLocal(id, payload);
+            showToast('✓ UORG atualizada com sucesso na planilha db_inventario!', 'success');
+          } else {
+            showToast('Erro ao salvar: ' + (res.mensagem || 'Erro desconhecido'), 'error');
+          }
+        })
+        .withFailureHandler((err) => {
+          elements.btnSalvarGestao.disabled = false;
+          elements.btnSalvarGestao.textContent = '💾 Salvar Alterações no Banco';
+          showToast('Erro de comunicação: ' + err.toString(), 'error');
+        })
+        .salvarUorg(payload);
+    } else {
+      // Modo local / preview
+      setTimeout(() => {
+        elements.btnSalvarGestao.disabled = false;
+        elements.btnSalvarGestao.textContent = '💾 Salvar Alterações no Banco';
+        atualizarItemNoEstadoLocal(id, payload);
+        showToast('✓ Alterações salvas com sucesso no banco de dados!', 'success');
+      }, 300);
+    }
+  }
+
+  function atualizarItemNoEstadoLocal(id, payload) {
+    const item = state.allData.find(d => d.id === id);
+    if (item) {
+      Object.assign(item, payload);
+      applyFilters();
+      populateGestaoUorgSelect();
+      elements.gestaoSelectUorg.value = id;
+    }
+  }
+
+  function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    elements.toastContainer.appendChild(toast);
+
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => toast.remove(), 300);
+    }, 4000);
+  }
+
+  // Modal
   function openModal(item) {
     elements.modalTitle.textContent = `${item.ug_sigla} — ${item.uorg_sigla}`;
     elements.modalSubtitle.textContent = `Código UORG: ${item.uorg_codigo} | UG: ${item.ug_nome}`;
@@ -473,33 +618,37 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="detail-value">
           ${item.processo_sei ? (
             item.processo_sei_link 
-              ? `<a href="${item.processo_sei_link}" target="_blank" class="sei-link" style="font-size:14px">${item.processo_sei} (Clique para abrir no SEI) ↗</a>` 
+              ? `<a href="${item.processo_sei_link}" target="_blank" class="sei-link" style="font-size:14px">${item.processo_sei} ↗</a>` 
               : item.processo_sei
-          ) : 'Nenhum processo autuado até o momento'}
+          ) : 'Nenhum processo autuado'}
         </div>
       </div>
 
       <div class="detail-row">
-        <span class="detail-label">Declaração de Bens Acautelados (Marco: 31/08/2026)</span>
+        <span class="detail-label">Declaração de Bens Acautelados (Prazo: 31/08/2026)</span>
         <div class="detail-value">
-          ${item.bens_acautelados_doc || 'Pendente de envio pelo responsável pela carga patrimonial'}
+          ${item.bens_acautelados_doc || 'Pendente de envio'}
         </div>
       </div>
 
       <div class="detail-row">
-        <span class="detail-label">Comissão / Designação de Membros</span>
+        <span class="detail-label">Comissão / Designação</span>
         <div class="detail-value" style="white-space: pre-wrap">
-          ${item.comissao_designacao || 'Designação sob Portaria Geral da Unidade Gestora'}
+          ${item.comissao_designacao || 'Designação sob Portaria Geral da UG'}
         </div>
       </div>
 
-      <div class="detail-row">
-        <span class="detail-label">Próximo Marco do Cronograma Oficial</span>
-        <div class="detail-value" style="border-left: 3px solid var(--primary)">
-          <strong>30/11/2026:</strong> Expedição do Relatório Final da Unidade Gestora após conclusão dos levantamentos de todas as UORGs.
-        </div>
+      <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+        <button id="btn-modal-edit" class="btn-action btn-primary">
+          ✏️ Abrir no Módulo de Gestão para Edição
+        </button>
       </div>
     `;
+
+    document.getElementById('btn-modal-edit').addEventListener('click', () => {
+      closeModal();
+      abrirEdicaoNoModuloGestao(item.id);
+    });
 
     elements.modalOverlay.classList.add('active');
   }
@@ -508,21 +657,12 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.modalOverlay.classList.remove('active');
   }
 
-  // 7. Exportar CSV Filtrado
   function exportFilteredCsv() {
-    if (state.filteredData.length === 0) {
-      alert('Nenhum dado para exportar!');
-      return;
-    }
-
+    if (state.filteredData.length === 0) return;
     const headers = ['UG', 'Codigo_UORG', 'Sigla_UORG', 'Status', 'Processo_SEI', 'Link_SEI', 'Bens_Acautelados'];
     const rows = state.filteredData.map(d => [
-      `"${d.ug_sigla}"`,
-      `"${d.uorg_codigo}"`,
-      `"${d.uorg_sigla}"`,
-      `"${d.status_simplificado}"`,
-      `"${d.processo_sei || ''}"`,
-      `"${d.processo_sei_link || ''}"`,
+      `"${d.ug_sigla}"`, `"${d.uorg_codigo}"`, `"${d.uorg_sigla}"`, `"${d.status_simplificado}"`,
+      `"${d.processo_sei || ''}"`, `"${d.processo_sei_link || ''}"`,
       `"${(d.bens_acautelados_doc || '').replace(/"/g, '""')}"`
     ]);
 
@@ -536,7 +676,7 @@ document.addEventListener('DOMContentLoaded', () => {
     URL.revokeObjectURL(url);
   }
 
-  // Iniciar
+  // Inicializa a aplicação
   init();
 });
 
