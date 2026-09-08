@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Painel de Acompanhamento do Inventário Anual SENAPPEN 2026",
   "scripts": {
+    "build": "echo 'Static build ready'",
     "start": "python3 -m http.server 3000",
     "push": "clasp push -f",
     "pull": "clasp pull",
