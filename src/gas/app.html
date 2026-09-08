@@ -1296,6 +1296,67 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  /**
+   * Valida se o usuário logado possui permissão para editar uma UORG (RBAC)
+   */
+  function usuarioPodeEditarUorg(item) {
+    const user = state.usuarioLogado;
+    if (!user) return false;
+    if (user.perfil === 'ADMIN') return true;
+    if (user.perfil === 'GESTOR_UG') {
+      return user.ug_vinculada === 'TODAS' || user.ug_vinculada === item.ug_sigla;
+    }
+    return false; // Perfil CONSULTA ou não autenticado
+  }
+
+  /**
+   * Atualização rápida do Status Simplificado com atualização otimista e persistência no banco
+   */
+  async function atualizarStatusUorgRapido(id, novoStatus) {
+    const item = state.allData.find(d => d.id === id);
+    if (!item) return;
+
+    if (!usuarioPodeEditarUorg(item)) {
+      showToast('Você não possui permissão para alterar o status desta UORG.', 'error');
+      renderTable();
+      return;
+    }
+
+    const statusAnterior = item.status_simplificado;
+    if (statusAnterior === novoStatus) return;
+
+    // Atualização otimista imediata na UI
+    item.status_simplificado = novoStatus;
+    applyFilters();
+    showToast(`✓ Status de ${item.uorg_sigla} alterado para "${novoStatus}"!`, 'success');
+
+    // Persistência assíncrona no backend
+    const payload = {
+      id: id,
+      processo_sei: item.processo_sei || '',
+      processo_sei_link: item.processo_sei_link || '',
+      bens_acautelados_doc: item.bens_acautelados_doc || '',
+      relatorio_uorg: item.relatorio_uorg || '',
+      relatorio_final_ug: item.relatorio_final_ug || '',
+      status_simplificado: novoStatus
+    };
+
+    try {
+      const res = await ApiClient.executar('salvarUorg', { uorg: payload });
+      if (!res || res.status !== 'success') {
+        console.warn('Falha ao persistir status rápido no servidor:', res);
+        item.status_simplificado = statusAnterior;
+        applyFilters();
+        showToast('Erro ao salvar no banco: ' + ((res && res.mensagem) || 'Falha'), 'error');
+      }
+    } catch (err) {
+      console.error('Erro de rede ao salvar status rápido:', err);
+      item.status_simplificado = statusAnterior;
+      applyFilters();
+      showToast('Erro de comunicação ao salvar status: ' + (err.message || err.toString()), 'error');
+    }
+  }
+
   function renderTable() {
     elements.tableBody.innerHTML = '';
     elements.tableCount.textContent = `Exibindo ${state.filteredData.length} de ${state.allData.length} UORGs`;
@@ -1324,16 +1385,26 @@ document.addEventListener('DOMContentLoaded', () => {
         </span>
       ` : `<span class="sei-empty">Pendente</span>`;
 
+      const podeEditar = usuarioPodeEditarUorg(item);
+
+      const statusHtml = podeEditar ? `
+        <select class="status-pill status-pill-select ${statusClass}" data-id="${item.id}" title="Alteração rápida de status (clique para escolher)">
+          <option value="Não iniciado" ${item.status_simplificado === 'Não iniciado' ? 'selected' : ''}>🔴 Não iniciado</option>
+          <option value="Em andamento" ${item.status_simplificado === 'Em andamento' ? 'selected' : ''}>🟡 Em andamento</option>
+          <option value="Processado" ${item.status_simplificado === 'Processado' ? 'selected' : ''}>🟢 Processado</option>
+        </select>
+      ` : `
+        <span class="status-pill ${statusClass}">
+          <span class="legend-dot ${statusClass}"></span>
+          ${item.status_simplificado}
+        </span>
+      `;
+
       tr.innerHTML = `
         <td style="font-weight: 700; color: var(--primary)">${item.ug_sigla}</td>
         <td style="font-family: var(--font-mono); font-weight: 600">${item.uorg_codigo || '-'}</td>
         <td style="font-weight: 600">${item.uorg_sigla}</td>
-        <td>
-          <span class="status-pill ${statusClass}">
-            <span class="legend-dot ${statusClass}"></span>
-            ${item.status_simplificado}
-          </span>
-        </td>
+        <td>${statusHtml}</td>
         <td>${procHtml}</td>
         <td>${cautelaHtml}</td>
         <td>
@@ -1343,13 +1414,22 @@ document.addEventListener('DOMContentLoaded', () => {
         </td>
       `;
 
+      const selectStatus = tr.querySelector('.status-pill-select');
+      if (selectStatus) {
+        selectStatus.addEventListener('click', (e) => e.stopPropagation());
+        selectStatus.addEventListener('change', (e) => {
+          e.stopPropagation();
+          atualizarStatusUorgRapido(item.id, e.target.value);
+        });
+      }
+
       tr.querySelector('.btn-edit-row').addEventListener('click', (e) => {
         e.stopPropagation();
         abrirEdicaoNoModuloGestao(item.id);
       });
 
       tr.addEventListener('click', (e) => {
-        if (!e.target.closest('a') && !e.target.closest('button')) {
+        if (!e.target.closest('a') && !e.target.closest('button') && !e.target.closest('select')) {
           openModal(item);
         }
       });
@@ -1591,14 +1671,34 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusClass = item.status_simplificado === 'Processado' ? 'processado' 
                       : (item.status_simplificado === 'Em andamento' ? 'em-andamento' : 'nao-iniciado');
 
+    const podeEditar = usuarioPodeEditarUorg(item);
+
+    const statusHtml = podeEditar ? `
+      <div class="quick-status-segmented-control" id="modal-quick-status">
+        <button type="button" class="btn-segmented-status ${item.status_simplificado === 'Não iniciado' ? 'active nao-iniciado' : ''}" data-val="Não iniciado" title="Mudar para Não iniciado">
+          <span class="legend-dot nao-iniciado"></span> Não iniciado
+        </button>
+        <button type="button" class="btn-segmented-status ${item.status_simplificado === 'Em andamento' ? 'active em-andamento' : ''}" data-val="Em andamento" title="Mudar para Em andamento">
+          <span class="legend-dot em-andamento"></span> Em andamento
+        </button>
+        <button type="button" class="btn-segmented-status ${item.status_simplificado === 'Processado' ? 'active processado' : ''}" data-val="Processado" title="Mudar para Processado">
+          <span class="legend-dot processado"></span> Processado
+        </button>
+      </div>
+    ` : `
+      <div>
+        <span class="status-pill ${statusClass}">
+          <span class="legend-dot ${statusClass}"></span>
+          ${item.status_simplificado}
+        </span>
+      </div>
+    `;
+
     elements.modalBody.innerHTML = `
       <div class="detail-row">
-        <span class="detail-label">Status do Inventário</span>
+        <span class="detail-label">Status</span>
         <div>
-          <span class="status-pill ${statusClass}">
-            <span class="legend-dot ${statusClass}"></span>
-            ${item.status_simplificado}
-          </span>
+          ${statusHtml}
         </div>
       </div>
 
@@ -1625,10 +1725,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
       <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
         <button id="btn-modal-edit" class="btn-action btn-primary">
-          ✏️ Editar Dados da UORG
+          ✏️ Editar Todos os Dados da UORG
         </button>
       </div>
     `;
+
+    if (podeEditar) {
+      const modalBtns = elements.modalBody.querySelectorAll('#modal-quick-status .btn-segmented-status');
+      modalBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const novoVal = btn.getAttribute('data-val');
+          modalBtns.forEach(b => {
+            b.className = 'btn-segmented-status';
+          });
+          const novaClasse = novoVal === 'Processado' ? 'processado' : (novoVal === 'Em andamento' ? 'em-andamento' : 'nao-iniciado');
+          btn.className = `btn-segmented-status active ${novaClasse}`;
+          atualizarStatusUorgRapido(item.id, novoVal);
+        });
+      });
+    }
 
     document.getElementById('btn-modal-edit').addEventListener('click', () => {
       closeModal();

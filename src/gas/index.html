@@ -399,35 +399,35 @@
           </div>
 
           <div class="gestao-form-grid">
-            <!-- Unidade Gestora (Readonly) -->
-            <div class="form-group">
-              <label class="form-label">Unidade Gestora (UG)</label>
-              <input type="text" id="form-uorg-ug" class="form-input" readonly>
-            </div>
+            <!-- Linha 1: Identificação e Status da UORG (Alinhados na mesma linha horizontal) -->
+            <div class="gestao-row-top">
+              <!-- Unidade Gestora (Readonly) -->
+              <div class="form-group">
+                <label class="form-label" for="form-uorg-ug">Unidade Gestora (UG)</label>
+                <input type="text" id="form-uorg-ug" class="form-input" readonly>
+              </div>
 
-            <!-- Código UORG (Readonly) -->
-            <div class="form-group">
-              <label class="form-label">Código UORG</label>
-              <input type="text" id="form-uorg-codigo" class="form-input" readonly>
-            </div>
+              <!-- Código UORG (Readonly) -->
+              <div class="form-group">
+                <label class="form-label" for="form-uorg-codigo">Código UORG</label>
+                <input type="text" id="form-uorg-codigo" class="form-input" readonly>
+              </div>
 
-            <!-- Sigla da UORG (Readonly) -->
-            <div class="form-group">
-              <label class="form-label">SETOR/SIGLA</label>
-              <input type="text" id="form-uorg-sigla" class="form-input" readonly>
-            </div>
+              <!-- Sigla da UORG (Readonly) -->
+              <div class="form-group">
+                <label class="form-label" for="form-uorg-sigla">SETOR / SIGLA</label>
+                <input type="text" id="form-uorg-sigla" class="form-input" readonly>
+              </div>
 
-            <!-- Status Simplificado -->
-            <div class="form-group">
-              <label class="form-label" for="form-uorg-status">
-                Status Simplificado da Fase
-                <span class="helper">Classificação Oficial</span>
-              </label>
-              <select id="form-uorg-status" class="form-input" style="font-weight: 700;">
-                <option value="Não iniciado">🔴 Não iniciado</option>
-                <option value="Em andamento">🟡 Em andamento</option>
-                <option value="Processado">🟢 Processado</option>
-              </select>
+              <!-- Status -->
+              <div class="form-group">
+                <label class="form-label" for="form-uorg-status">Status</label>
+                <select id="form-uorg-status" class="form-input" style="font-weight: 700;">
+                  <option value="Não iniciado">🔴 Não iniciado</option>
+                  <option value="Em andamento">🟡 Em andamento</option>
+                  <option value="Processado">🟢 Processado</option>
+                </select>
+              </div>
             </div>
 
             <!-- Número do Processo SEI -->

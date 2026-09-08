@@ -804,6 +804,98 @@ body {
   border: 1px solid var(--status-processado-border);
 }
 
+/* Quick Status Inline Select na Tabela */
+.status-pill-select {
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 24px;
+  background-repeat: no-repeat;
+  background-position: right 7px center;
+  background-size: 10px 10px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23475569'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E");
+  transition: all 0.2s ease;
+  outline: none;
+  border: 1px solid transparent;
+  font-family: inherit;
+}
+
+.status-pill-select:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  filter: brightness(0.97);
+}
+
+.status-pill-select:focus {
+  box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.2);
+}
+
+.status-pill-select option {
+  background-color: #ffffff;
+  color: #1e293b;
+  font-size: 13px;
+  padding: 6px 10px;
+}
+
+/* Quick Status Segmented Control na Modal */
+.quick-status-segmented-control {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.btn-segmented-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 600;
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-segmented-status:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: #f8fafc;
+  transform: translateY(-1px);
+}
+
+.btn-segmented-status.active.nao-iniciado {
+  background: var(--status-nao-iniciado-bg);
+  color: var(--status-nao-iniciado);
+  border-color: var(--status-nao-iniciado);
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.15);
+}
+
+.btn-segmented-status.active.em-andamento {
+  background: var(--status-em-andamento-bg);
+  color: var(--status-em-andamento);
+  border-color: var(--status-em-andamento);
+  box-shadow: 0 2px 6px rgba(217, 119, 6, 0.15);
+}
+
+.btn-segmented-status.active.processado {
+  background: var(--status-processado-bg);
+  color: var(--status-processado);
+  border-color: var(--status-processado);
+  box-shadow: 0 2px 6px rgba(22, 101, 52, 0.15);
+}
+
+.btn-segmented-status:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+
 /* Links do SEI */
 .sei-link {
   display: inline-flex;
@@ -944,6 +1036,25 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 20px;
   margin-top: 20px;
+}
+
+.gestao-row-top {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 992px) {
+  .gestao-row-top {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 576px) {
+  .gestao-row-top {
+    grid-template-columns: 1fr;
+  }
 }
 
 .form-group {
