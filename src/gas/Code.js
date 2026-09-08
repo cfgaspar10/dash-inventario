@@ -25,6 +25,27 @@ function onOpen() {
  * Ponto de entrada do Web App
  */
 function doGet(e) {
+  // Suporte a API REST via GET caso solicitado (?api=true&action=...)
+  if (e && e.parameter && e.parameter.api === 'true') {
+    const action = e.parameter.action || 'obterDadosCompletos';
+    let res = null;
+    try {
+      if (action === 'obterDadosCompletos') {
+        res = DashboardController.obterDadosCompletos();
+      } else if (action === 'listarUsuarios') {
+        res = UsuarioController.listar();
+      } else if (action === 'obterDadosConfig') {
+        res = AdminConfigController.obterDadosConfig();
+      } else {
+        res = { status: 'error', mensagem: 'Ação GET desconhecida: ' + action };
+      }
+    } catch (err) {
+      res = { status: 'error', mensagem: err.message || err.toString() };
+    }
+    return ContentService.createTextOutput(JSON.stringify(res))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
   const template = HtmlService.createTemplateFromFile('index');
   try {
     const dados = DashboardController.obterDadosCompletos();
@@ -37,6 +58,109 @@ function doGet(e) {
     .setTitle('Sistema de Gestão do Inventário 2026 — SENAPPEN')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1.0')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+/**
+ * Ponto de entrada para requisições POST (API REST para Vercel e integrações externas)
+ */
+function doPost(e) {
+  let payload = {};
+  try {
+    if (e && e.postData && e.postData.contents) {
+      payload = JSON.parse(e.postData.contents);
+    } else if (e && e.parameter) {
+      payload = e.parameter;
+    }
+  } catch (parseErr) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      mensagem: 'Falha ao processar payload JSON: ' + parseErr.message
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  const action = payload.action;
+  let resposta = { status: 'error', mensagem: 'Ação não especificada.' };
+
+  try {
+    switch (action) {
+      // Autenticação & Usuários
+      case 'autenticar':
+        resposta = UsuarioController.autenticar(payload.login, payload.senha);
+        break;
+      case 'listarUsuarios':
+        resposta = UsuarioController.listar();
+        break;
+      case 'salvarUsuario':
+        resposta = UsuarioController.salvar(payload.usuario);
+        break;
+      case 'excluirUsuario':
+        resposta = UsuarioController.excluir(payload.id);
+        break;
+      case 'alterarSenhaUsuario':
+        resposta = UsuarioController.alterarSenha(payload.id, payload.novaSenha);
+        break;
+
+      // Dados Operacionais e Dashboard
+      case 'obterDadosCompletos':
+        resposta = DashboardController.obterDadosCompletos();
+        break;
+      case 'getInventarioData':
+        resposta = DashboardController.obterDados();
+        break;
+      case 'salvarUorg':
+        resposta = GestaoController.salvarUorg(payload.uorg);
+        break;
+      case 'obterUorg':
+        resposta = GestaoController.obterUorg(payload.id);
+        break;
+      case 'recalcularStatus':
+        resposta = GestaoController.recalcularFases();
+        break;
+
+      // Configurações & Parametrização
+      case 'obterDadosConfig':
+        resposta = AdminConfigController.obterDadosConfig();
+        break;
+      case 'salvarUg':
+        resposta = AdminConfigController.salvarUg(payload.ug);
+        break;
+      case 'excluirUg':
+        resposta = AdminConfigController.excluirUg(payload.siglaOuId);
+        break;
+      case 'cadastrarUorg':
+        resposta = AdminConfigController.cadastrarUorg(payload.uorg);
+        break;
+      case 'excluirUorg':
+        resposta = AdminConfigController.excluirUorg(payload.id);
+        break;
+      case 'toggleUorg':
+        resposta = AdminConfigController.toggleUorg(payload.id, payload.ativo);
+        break;
+      case 'salvarParametrosCiclo':
+        resposta = AdminConfigController.salvarParametrosCiclo(payload.ciclo);
+        break;
+      case 'ativarCiclo':
+        resposta = AdminConfigController.ativarCiclo(payload.idOuAno);
+        break;
+      case 'excluirCiclo':
+        resposta = AdminConfigController.excluirCiclo(payload.idOuAno);
+        break;
+      case 'salvarEtapaCronograma':
+        resposta = AdminConfigController.salvarEtapaCronograma(payload.etapa);
+        break;
+      case 'excluirEtapaCronograma':
+        resposta = AdminConfigController.excluirEtapaCronograma(payload.id);
+        break;
+
+      default:
+        resposta = { status: 'error', mensagem: 'Ação não reconhecida: ' + action };
+    }
+  } catch (execErr) {
+    resposta = { status: 'error', mensagem: execErr.message || execErr.toString() };
+  }
+
+  return ContentService.createTextOutput(JSON.stringify(resposta))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function abrirDashboardModal() {
@@ -176,5 +300,26 @@ function salvarEtapaCronograma(payload) {
 
 function excluirEtapaCronograma(id) {
   return AdminConfigController.excluirEtapaCronograma(id);
+}
+
+// Endpoints de Usuários e Autenticação
+function autenticarUsuario(login, senha) {
+  return UsuarioController.autenticar(login, senha);
+}
+
+function listarUsuarios() {
+  return UsuarioController.listar();
+}
+
+function salvarUsuario(payload) {
+  return UsuarioController.salvar(payload);
+}
+
+function excluirUsuario(id) {
+  return UsuarioController.excluir(id);
+}
+
+function alterarSenhaUsuario(id, novaSenha) {
+  return UsuarioController.alterarSenha(id, novaSenha);
 }
 

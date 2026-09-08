@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "name": "dash-inventario-senappen",
+  "builds": [
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "**/*",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/gateway",
+      "dest": "/api/gateway.js"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/gateway.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ]
+}

@@ -12,18 +12,88 @@
 </head>
 <body>
 
-  <div class="app-container">
-    <!-- Navegação Principal (Tabs MVC) -->
+  <!-- ====================================================================
+       TELA DE LOGIN INSTITUCIONAL (AUTENTICAÇÃO)
+       ==================================================================== -->
+  <div id="view-login" class="login-view-container">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-emblem">🏛️</div>
+        <div class="login-institution">MINISTÉRIO DA JUSTIÇA E SEGURANÇA PÚBLICA</div>
+        <div class="login-agency">SECRETARIA NACIONAL DE POLÍTICAS PENAIS — SENAPPEN</div>
+        <h2 class="login-title">Sistema de Gestão do Inventário Anual</h2>
+        <p class="login-subtitle">Acesso seguro de servidores e comissões patrimoniais</p>
+      </div>
+
+      <form id="form-login" class="login-form">
+        <div id="login-feedback" class="login-feedback" style="display: none;"></div>
+
+        <div class="form-group">
+          <label class="form-label" for="login-username">Usuário ou E-mail Institucional</label>
+          <div class="input-with-icon">
+            <span class="input-icon">👤</span>
+            <input type="text" id="login-username" class="form-input" placeholder="Ex: admin ou seu.nome" required autocomplete="username">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="login-password">Senha de Acesso</label>
+          <div class="input-with-icon">
+            <span class="input-icon">🔑</span>
+            <input type="password" id="login-password" class="form-input" placeholder="Digite sua senha" required autocomplete="current-password">
+            <button type="button" id="btn-toggle-pwd" class="btn-toggle-pwd" title="Mostrar/ocultar senha">👁️</button>
+          </div>
+        </div>
+
+        <button type="submit" id="btn-login-submit" class="btn-login-submit">
+          <span>Entrar no Sistema</span>
+          <span class="btn-icon">➔</span>
+        </button>
+      </form>
+
+      <div class="login-footer">
+        <div class="login-credential-tip">
+          <span>💡 <strong>Acesso Inicial do Administrador:</strong> Usuário <code>admin</code> e senha <code>admin@senappen2026</code></span>
+        </div>
+        <p class="login-legal">Uso monitorado em conformidade com as diretrizes de segurança da informação e governança corporativa da SENAPPEN.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-container" id="app-container" style="display: none;">
+    <!-- Navegação Principal (Tabs MVC) & Usuário Conectado -->
     <nav class="main-nav">
-      <button class="nav-tab active" id="tab-dashboard">
-        <span>📊</span> Painel - Dashboard
-      </button>
-      <button class="nav-tab" id="tab-gestao" style="display: none;">
-        <span>📝</span> Edição de UORG
-      </button>
-      <button class="nav-tab" id="tab-config">
-        <span>⚙️</span> Administração
-      </button>
+      <div class="nav-tabs-group">
+        <button class="nav-tab active" id="tab-dashboard">
+          <span>📊</span> Painel - Dashboard
+        </button>
+        <button class="nav-tab" id="tab-gestao" style="display: none;">
+          <span>📝</span> Edição de UORG
+        </button>
+        <button class="nav-tab" id="tab-config">
+          <span>⚙️</span> Administração
+        </button>
+      </div>
+
+      <!-- Barra de Usuário Logado & Logout (Posicionada no final à direita do card) -->
+      <div class="header-user-badge" id="header-user-badge" style="display: none;">
+        <div class="user-avatar" id="header-user-avatar">AD</div>
+        <div class="user-info">
+          <span class="user-name" id="header-user-name">Administrador Geral</span>
+          <div class="user-meta">
+            <span class="user-role-badge" id="header-user-role">ADMIN</span>
+            <span class="user-ug" id="header-user-ug">SENAPPEN</span>
+          </div>
+        </div>
+        <button type="button" id="btn-logout" class="btn-logout" title="Encerrar sessão no sistema">
+          <span>Sair</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </button>
+      </div>
     </nav>
 
     <!-- Cabeçalho Compartilhado -->
@@ -46,6 +116,7 @@
             Acompanhamento e governança do inventário patrimonial das unidades nas fases <strong>Não iniciado</strong>, <strong>Em andamento</strong> e <strong>Processado</strong>.
           </p>
         </div>
+
         <div class="header-processo">
           <span class="label">Processo Geral SENAPPEN</span>
           <span class="value" id="header-processo-mae">
@@ -435,6 +506,9 @@
         <button class="config-subtab" id="subtab-cronograma">
           <span>📅</span> Régua do Cronograma Oficial
         </button>
+        <button class="config-subtab" id="subtab-usuarios">
+          <span>👥</span> Usuários & Permissões
+        </button>
       </div>
 
       <!-- PAINEL 1: GESTÃO DE UGs -->
@@ -731,6 +805,94 @@
           </div>
         </div>
       </div>
+
+      <!-- PAINEL 5: GESTÃO DE USUÁRIOS & PERMISSÕES -->
+      <div id="pane-usuarios" class="config-pane">
+        <div class="gestao-card">
+          <div class="card-header-action">
+            <div>
+              <div class="section-title"><span>👥</span> Gestão de Usuários & Perfis de Acesso</div>
+              <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+                Cadastre servidores e defina os níveis de permissão (Administrador, Gestor de UG ou Somente Consulta).
+              </p>
+            </div>
+            <button id="btn-novo-usuario" class="btn-action btn-primary">
+              <span>➕</span> Novo Usuário
+            </button>
+          </div>
+
+          <!-- Formulário Oculto de Cadastro/Edição de Usuário -->
+          <form id="form-usuario-cadastro" style="display: none; background: var(--bg-subtle); padding: 18px; border-radius: var(--radius-md); margin-bottom: 20px; border: 1px solid var(--border);">
+            <input type="hidden" id="usuario-id">
+            <h4 id="form-usuario-title" style="margin-bottom: 12px; font-size: 14px; font-weight: 700; color: var(--primary);">Cadastrar Novo Usuário</h4>
+            <div class="gestao-form-grid" style="margin-top: 0;">
+              <div class="form-group">
+                <label class="form-label" for="usuario-nome">Nome Completo</label>
+                <input type="text" id="usuario-nome" class="form-input" placeholder="Ex: Maria dos Santos" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="usuario-login">Login de Acesso</label>
+                <input type="text" id="usuario-login" class="form-input" placeholder="Ex: maria.santos" required autocomplete="off">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="usuario-email">E-mail Institucional</label>
+                <input type="email" id="usuario-email" class="form-input" placeholder="Ex: maria.santos@mj.gov.br" required>
+              </div>
+              <div class="form-group" id="usuario-senha-group">
+                <label class="form-label" for="usuario-senha">Senha Inicial</label>
+                <input type="password" id="usuario-senha" class="form-input" placeholder="Mínimo 6 caracteres">
+                <small style="color: var(--text-muted); font-size: 11px;">Obrigatório no cadastro. Em edições, use o botão Alterar Senha.</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="usuario-perfil">Perfil de Acesso</label>
+                <select id="usuario-perfil" class="form-input" required>
+                  <option value="ADMIN">Administrador Geral (Acesso Total)</option>
+                  <option value="GESTOR_UG" selected>Gestor de UG (Edita apenas sua Unidade)</option>
+                  <option value="CONSULTA">Somente Consulta (Visualização & Relatórios)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="usuario-ug">Unidade Gestora Vinculada</label>
+                <select id="usuario-ug" class="form-input">
+                  <option value="TODAS">Todas as Unidades (Geral)</option>
+                  <!-- Preenchido dinamicamente com as UGs cadastradas -->
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="usuario-ativo">Situação da Conta</label>
+                <select id="usuario-ativo" class="form-input">
+                  <option value="S">Ativo (Permite Login)</option>
+                  <option value="N">Bloqueado / Inativo</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" id="btn-cancelar-usuario" class="btn-action">Cancelar</button>
+              <button type="submit" id="btn-salvar-usuario" class="btn-action btn-primary">💾 Salvar Usuário</button>
+            </div>
+          </form>
+
+          <!-- Tabela de Usuários -->
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Login / E-mail</th>
+                  <th>Perfil</th>
+                  <th>UG Vinculada</th>
+                  <th>Status</th>
+                  <th>Último Acesso</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="table-usuarios-body">
+                <!-- Preenchido dinamicamente -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -814,9 +976,39 @@
     </div>
   </div>
 
+  <!-- Modal de Alteração de Senha -->
+  <div class="modal-overlay" id="modal-senha-overlay">
+    <div class="confirm-modal-card" style="max-width: 440px; text-align: left;">
+      <div class="modal-header" style="padding: 16px 20px; border-radius: var(--radius-lg) var(--radius-lg) 0 0;">
+        <div>
+          <h3 style="font-size: 16px; margin: 0; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+            <span>🔑</span> Alterar Senha de Usuário
+          </h3>
+          <p id="senha-usuario-nome" style="font-size: 12px; color: #cbd5e1; margin-top: 2px;"></p>
+        </div>
+        <button class="modal-close" id="modal-senha-close">&times;</button>
+      </div>
+      <form id="form-alterar-senha-modal" style="padding: 20px;">
+        <input type="hidden" id="senha-usuario-id">
+        <div class="form-group">
+          <label class="form-label" for="nova-senha-input">Nova Senha</label>
+          <input type="password" id="nova-senha-input" class="form-input" placeholder="Mínimo 6 caracteres" required minlength="6">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="confirma-senha-input">Confirmar Nova Senha</label>
+          <input type="password" id="confirma-senha-input" class="form-input" placeholder="Repita a nova senha" required minlength="6">
+        </div>
+        <div class="confirm-modal-actions" style="margin-top: 20px; padding: 0;">
+          <button type="button" id="btn-cancelar-alterar-senha" class="confirm-btn-cancel">Cancelar</button>
+          <button type="submit" id="btn-confirmar-alterar-senha" class="confirm-btn-confirm" style="background: var(--primary); color: #ffffff;">Alterar Senha</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Scripts -->
-  <?!= include("data"); ?>
-    <script>
+    <?!= include("data"); ?>
+  <script>
     // Injeção direta de dados do backend (Server-Side Rendering SSR)
     (function() {
       try {

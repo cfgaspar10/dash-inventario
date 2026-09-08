@@ -382,3 +382,91 @@ const AdminController = {
     };
   }
 };
+
+const UsuarioController = {
+  /**
+   * Autentica login e senha do usuário
+   */
+  autenticar: function(login, senha) {
+    try {
+      if (!login || !senha) {
+        return { status: 'error', mensagem: 'Login e senha são obrigatórios.' };
+      }
+      const usuario = UsuarioModel.autenticar(login, senha);
+      if (!usuario) {
+        return { status: 'error', mensagem: 'Credenciais inválidas ou usuário inativo.' };
+      }
+      return {
+        status: 'success',
+        mensagem: 'Autenticação realizada com sucesso!',
+        usuario: usuario
+      };
+    } catch (err) {
+      return { status: 'error', mensagem: err.message || err.toString() };
+    }
+  },
+
+  /**
+   * Lista todos os usuários cadastrados
+   */
+  listar: function() {
+    try {
+      const usuarios = UsuarioModel.obterTodos();
+      return {
+        status: 'success',
+        total: usuarios.length,
+        dados: usuarios
+      };
+    } catch (err) {
+      return { status: 'error', mensagem: err.message || err.toString() };
+    }
+  },
+
+  /**
+   * Salva ou atualiza um usuário
+   */
+  salvar: function(payload) {
+    try {
+      const res = UsuarioModel.salvarUsuario(payload);
+      return {
+        status: 'success',
+        mensagem: res.operacao === 'inclusao' ? 'Usuário cadastrado com sucesso!' : 'Usuário atualizado com sucesso!',
+        dados: res
+      };
+    } catch (err) {
+      return { status: 'error', mensagem: err.message || err.toString() };
+    }
+  },
+
+  /**
+   * Exclui um usuário do sistema
+   */
+  excluir: function(id) {
+    try {
+      const res = UsuarioModel.excluirUsuario(id);
+      return {
+        status: 'success',
+        mensagem: 'Usuário removido com sucesso!',
+        dados: res
+      };
+    } catch (err) {
+      return { status: 'error', mensagem: err.message || err.toString() };
+    }
+  },
+
+  /**
+   * Altera a senha de um usuário
+   */
+  alterarSenha: function(id, novaSenha) {
+    try {
+      const res = UsuarioModel.alterarSenha(id, novaSenha);
+      return {
+        status: 'success',
+        mensagem: 'Senha alterada com sucesso!',
+        dados: res
+      };
+    } catch (err) {
+      return { status: 'error', mensagem: err.message || err.toString() };
+    }
+  }
+};
