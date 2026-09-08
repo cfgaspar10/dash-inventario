@@ -2,11 +2,26 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
   <title>Sistema de Inventário 2026 — SENAPPEN</title>
-  <link rel="stylesheet" href="src/styles.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
+  
+  <!-- Identidade Visual & Favicon -->
+  <link rel="icon" type="image/svg+xml" href="src/assets/favicon.svg">
+  <link rel="alternate icon" type="image/png" href="src/assets/favicon.png">
+  <link rel="apple-touch-icon" href="src/assets/apple-touch-icon.png">
+  
+  <!-- Configurações PWA & Mobile WebApp -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e3a8a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Inventário SENAPPEN">
+  <meta name="application-name" content="Inventário SENAPPEN">
+  <meta name="description" content="Painel de Acompanhamento e Governança do Inventário Anual Patrimonial SENAPPEN 2026">
+
   <!-- Bibliotecas de Exportação: SheetJS (XLSX) e html2pdf (PDF) -->
+  <link rel="stylesheet" href="src/styles.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -19,6 +34,7 @@
     <div class="login-card">
       <div class="login-header">
         <div class="login-logo-wrapper">
+          <img src="src/assets/logo-app.png" alt="Ícone Inventário SENAPPEN" class="login-app-icon">
           <img src="https://www.gov.br/senappen/pt-br/acesso-a-informacao/institucional/institucional/@@govbr.institucional.banner/b3987d25-efaa-476c-8ae0-6a0deb237a4e/@@images/2665983e-ca33-49ac-ae9a-ad02fb741f75.png"
                alt="SENAPPEN — Secretaria Nacional de Políticas Penais"
                class="login-logo-img"
@@ -100,22 +116,25 @@
     <!-- Cabeçalho Compartilhado -->
     <header class="header">
       <div class="header-top">
-        <div>
-          <div class="header-badges">
-            <span class="badge-tag highlight">SENAPPEN / MJSP</span>
-            <div class="header-exercicio-wrapper">
-              <span class="header-exercicio-icon">📅</span>
-              <label for="header-exercicio-select" class="header-exercicio-label">Exercício:</label>
-              <select id="header-exercicio-select" class="header-exercicio-select">
-                <!-- Preenchido dinamicamente pelo JavaScript -->
-              </select>
+        <div class="header-brand-container">
+          <img src="src/assets/logo-app.png" alt="Logo Inventário SENAPPEN" class="header-app-logo">
+          <div class="header-titles-group">
+            <div class="header-badges">
+              <span class="badge-tag highlight">SENAPPEN / MJSP</span>
+              <div class="header-exercicio-wrapper">
+                <span class="header-exercicio-icon">📅</span>
+                <label for="header-exercicio-select" class="header-exercicio-label">Exercício:</label>
+                <select id="header-exercicio-select" class="header-exercicio-select">
+                  <!-- Preenchido dinamicamente pelo JavaScript -->
+                </select>
+              </div>
+              <span class="badge-tag" id="header-oficio-badge">Ofício Circular nº /2026/DIREX (SEI 35011389)</span>
             </div>
-            <span class="badge-tag" id="header-oficio-badge">Ofício Circular nº /2026/DIREX (SEI 35011389)</span>
+            <h1 class="header-title">Sistema de Gestão do Inventário Anual</h1>
+            <p class="header-subtitle">
+              Acompanhamento e governança do inventário patrimonial das unidades nas fases <strong>Não iniciado</strong>, <strong>Em andamento</strong> e <strong>Processado</strong>.
+            </p>
           </div>
-          <h1 class="header-title">Sistema de Gestão do Inventário Anual</h1>
-          <p class="header-subtitle">
-            Acompanhamento e governança do inventário patrimonial das unidades nas fases <strong>Não iniciado</strong>, <strong>Em andamento</strong> e <strong>Processado</strong>.
-          </p>
         </div>
 
         <div class="header-processo">

@@ -1,0 +1,38 @@
+{
+  "name": "Sistema de Gestão do Inventário Anual — SENAPPEN",
+  "short_name": "Inventário SENAPPEN",
+  "description": "Painel de Acompanhamento e Governança do Inventário Anual Patrimonial SENAPPEN / MJSP",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#1e3a8a",
+  "orientation": "any",
+  "categories": [
+    "business",
+    "productivity",
+    "government"
+  ],
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/src/assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/src/assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/src/assets/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

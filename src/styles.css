@@ -2146,3 +2146,263 @@ body {
   background: #fee2e2;
   color: #b91c1c;
 }
+
+/* ============================================================================
+   ESTILOS DE LOGO & IDENTIDADE VISUAL
+   ============================================================================ */
+.header-brand-container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-app-logo {
+  width: 54px;
+  height: 54px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  object-fit: cover;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.header-app-logo:hover {
+  transform: scale(1.04);
+}
+
+.login-logo-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.login-app-icon {
+  width: 58px;
+  height: 58px;
+  border-radius: 14px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+  background: #ffffff;
+  object-fit: cover;
+  display: block;
+}
+
+.login-app-icon img {
+  width: 100%;
+  height: 100%;
+  border-radius: 14px;
+  object-fit: cover;
+}
+
+.login-brand-text {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.login-department {
+  font-size: 11px;
+  color: #475569;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* ============================================================================
+   RESPONSIVIDADE MOBILE & EXPERIÊNCIA PWA (TABLETS E SMARTPHONES)
+   ============================================================================ */
+
+/* Suporte a Safe Areas para Smartphones modernos (iOS notch, barras de navegação) */
+body {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+@media (max-width: 900px) {
+  .dashboard-container {
+    padding: 12px 14px;
+  }
+
+  .header-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .header-badges-right {
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .main-nav {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 10px 12px;
+  }
+
+  .nav-tabs {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .nav-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-tab {
+    white-space: nowrap;
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  .header-user-badge {
+    width: 100%;
+    justify-content: space-between;
+    padding: 6px 12px;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  .header-brand-container {
+    gap: 12px;
+  }
+
+  .header-app-logo {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+  }
+
+  .header-titles h1 {
+    font-size: 20px;
+    line-height: 1.25;
+  }
+
+  .header-titles p {
+    font-size: 12px;
+  }
+
+  .system-tag {
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+
+  /* Cronograma com Scroll Horizontal Suave */
+  .timeline-section {
+    padding: 14px;
+  }
+
+  .timeline-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .timeline-track {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 12px;
+    margin: 0 -14px;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .timeline-node {
+    min-width: 130px;
+    scroll-snap-align: start;
+  }
+
+  /* Painel de Filtros e Busca Mobile */
+  .controls-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .filter-group {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .filter-group select,
+  .search-input {
+    width: 100%;
+    min-height: 40px;
+  }
+
+  .table-actions-top {
+    flex-direction: column;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .btn-pdf-top {
+    width: 100%;
+    justify-content: center;
+    padding: 9px 14px;
+  }
+
+  /* Cards de KPI em telas menores */
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .kpi-card {
+    padding: 12px 10px;
+  }
+
+  .kpi-val {
+    font-size: 22px;
+  }
+
+  .kpi-label {
+    font-size: 11px;
+  }
+
+  /* Tabela Responsiva com Toque Amigável */
+  .table-responsive {
+    border-radius: var(--radius-md);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .status-inline-select {
+    min-height: 38px;
+    font-size: 13px;
+    padding: 4px 24px 4px 8px;
+  }
+
+  /* Modais em Dispositivos Móveis */
+  .modal-content,
+  .confirm-modal-card,
+  .pdf-modal-content {
+    width: 96% !important;
+    max-width: 96% !important;
+    margin: 10px auto;
+    max-height: 90vh;
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding: 14px 16px;
+  }
+
+  .login-card {
+    padding: 24px 18px;
+  }
+}
