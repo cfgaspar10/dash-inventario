@@ -45,7 +45,21 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    const data = await gasResponse.json();
+    const rawText = await gasResponse.text();
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch (parseError) {
+      console.error('[API Gateway Parse Error]: Resposta não é JSON:', rawText.slice(0, 300));
+      if (rawText.includes('Sign in') || rawText.includes('accounts.google.com') || rawText.includes('Não foi possível abrir o arquivo')) {
+        return res.status(403).json({
+          status: 'error',
+          mensagem: 'O Google Apps Script bloqueou o acesso externo. No editor do Google Apps Script, vá em "Implantar" > "Gerenciar implantações", edite a implantação e defina "Quem pode acessar" como "Qualquer pessoa" (Anyone).'
+        });
+      }
+      throw new Error(`Resposta do Apps Script não é JSON válido: ${rawText.slice(0, 100)}`);
+    }
+
     return res.status(200).json(data);
   } catch (error) {
     console.error('[API Gateway Error]:', error);
