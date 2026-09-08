@@ -1057,7 +1057,7 @@ const UsuarioModel = {
     if (!sheet) {
       const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
       sheet = ss.insertSheet(CONFIG.ABAS.USUARIO);
-      const headers = ['id_usuario', 'nome', 'login', 'senha_hash', 'perfil', 'ug_vinculada', 'ativo', 'criado_em', 'ultimo_acesso'];
+      const headers = ['id_usuario', 'nome', 'login', 'email', 'senha_hash', 'perfil', 'ug_vinculada', 'ativo', 'criado_em', 'ultimo_acesso'];
       sheet.appendRow(headers);
       sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#1e3a8a').setFontColor('#ffffff');
       sheet.setFrozenRows(1);
@@ -1065,15 +1065,29 @@ const UsuarioModel = {
       // Usuário administrador inicial padrão
       const adminHash = this._hashSenha('admin@senappen2026');
       const dataCriacao = Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm:ss');
-      sheet.appendRow([1, 'Administrador Geral', 'admin', adminHash, 'ADMIN', 'TODAS', 'S', dataCriacao, '']);
+      sheet.appendRow([1, 'Administrador Geral', 'admin', 'admin.inventario@mj.gov.br', adminHash, 'ADMIN', 'TODAS', 'S', dataCriacao, '']);
       console.log('✓ Aba tb_usuario criada com sucesso com usuário administrador inicial.');
     } else {
-      // Se a aba existe mas está vazia (só headers ou sem dados)
+      // Se a aba existe, garante que a coluna 'email' exista nos headers
       const data = sheet.getDataRange().getValues();
+      if (data.length > 0) {
+        const headers = data[0].map(h => String(h).trim().toLowerCase());
+        if (headers.indexOf('email') === -1) {
+          const lastCol = sheet.getLastColumn();
+          sheet.getRange(1, lastCol + 1).setValue('email').setFontWeight('bold').setBackground('#1e3a8a').setFontColor('#ffffff');
+          // Seta email do admin padrão se existir
+          if (data.length > 1) {
+            sheet.getRange(2, lastCol + 1).setValue('admin.inventario@mj.gov.br');
+          }
+          console.log('✓ Coluna email adicionada automaticamente à aba tb_usuario.');
+        }
+      }
+
+      // Se a aba existe mas está vazia
       if (data.length <= 1) {
         const adminHash = this._hashSenha('admin@senappen2026');
         const dataCriacao = Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm:ss');
-        sheet.appendRow([1, 'Administrador Geral', 'admin', adminHash, 'ADMIN', 'TODAS', 'S', dataCriacao, '']);
+        sheet.appendRow([1, 'Administrador Geral', 'admin', 'admin.inventario@mj.gov.br', adminHash, 'ADMIN', 'TODAS', 'S', dataCriacao, '']);
       }
     }
     return sheet;
@@ -1088,6 +1102,7 @@ const UsuarioModel = {
     const colId = headers.indexOf('id_usuario') + 1 || 1;
     const colNome = headers.indexOf('nome') + 1 || 2;
     const colLogin = headers.indexOf('login') + 1 || 3;
+    const colEmail = headers.indexOf('email') + 1;
     const colPerfil = headers.indexOf('perfil') + 1 || 5;
     const colUg = headers.indexOf('ug_vinculada') + 1 || 6;
     const colAtivo = headers.indexOf('ativo') + 1 || 7;
@@ -1098,10 +1113,13 @@ const UsuarioModel = {
     for (let r = 1; r < data.length; r++) {
       const row = data[r];
       if (!row[colLogin - 1]) continue;
+      const idVal = row[colId - 1] || r;
       lista.push({
-        id: row[colId - 1] || r,
+        id: idVal,
+        id_usuario: idVal,
         nome: String(row[colNome - 1] || ''),
         login: String(row[colLogin - 1] || '').trim().toLowerCase(),
+        email: colEmail > 0 ? String(row[colEmail - 1] || '').trim() : '',
         perfil: String(row[colPerfil - 1] || 'CONSULTA').toUpperCase(),
         ug_vinculada: String(row[colUg - 1] || 'TODAS').toUpperCase(),
         ativo: String(row[colAtivo - 1] || 'S').toUpperCase(),
@@ -1125,6 +1143,7 @@ const UsuarioModel = {
     const colId = headers.indexOf('id_usuario') + 1 || 1;
     const colNome = headers.indexOf('nome') + 1 || 2;
     const colLogin = headers.indexOf('login') + 1 || 3;
+    const colEmail = headers.indexOf('email') + 1;
     const colHash = headers.indexOf('senha_hash') + 1 || 4;
     const colPerfil = headers.indexOf('perfil') + 1 || 5;
     const colUg = headers.indexOf('ug_vinculada') + 1 || 6;
@@ -1149,16 +1168,21 @@ const UsuarioModel = {
         }
 
         // Atualiza data/hora do último acesso
-        const agoraStr = Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm:ss');
-        sheet.getRange(r + 1, colUltimo).setValue(agoraStr);
+        if (colUltimo > 0) {
+          const agoraStr = Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm:ss');
+          sheet.getRange(r + 1, colUltimo).setValue(agoraStr);
+        }
 
+        const idVal = row[colId - 1] || r;
         return {
-          id: row[colId - 1] || r,
+          id: idVal,
+          id_usuario: idVal,
           nome: String(row[colNome - 1] || ''),
           login: userLogin,
+          email: colEmail > 0 ? String(row[colEmail - 1] || '').trim() : '',
           perfil: String(row[colPerfil - 1] || 'CONSULTA').toUpperCase(),
           ug_vinculada: String(row[colUg - 1] || 'TODAS').toUpperCase(),
-          ultimo_acesso: agoraStr
+          ultimo_acesso: Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm:ss')
         };
       }
     }
@@ -1178,6 +1202,7 @@ const UsuarioModel = {
     const colId = headers.indexOf('id_usuario') + 1 || 1;
     const colNome = headers.indexOf('nome') + 1 || 2;
     const colLogin = headers.indexOf('login') + 1 || 3;
+    const colEmail = headers.indexOf('email') + 1;
     const colHash = headers.indexOf('senha_hash') + 1 || 4;
     const colPerfil = headers.indexOf('perfil') + 1 || 5;
     const colUg = headers.indexOf('ug_vinculada') + 1 || 6;
@@ -1186,11 +1211,12 @@ const UsuarioModel = {
 
     const loginLimpo = String(payload.login).trim().toLowerCase();
     const nomeLimpo = String(payload.nome).trim();
+    const emailLimpo = String(payload.email || '').trim();
     const perfil = String(payload.perfil || 'CONSULTA').toUpperCase();
     const ug = perfil === 'GESTOR_UG' ? String(payload.ug_vinculada || 'DIREX').toUpperCase() : 'TODAS';
     const ativo = String(payload.ativo || 'S').toUpperCase();
 
-    const idNum = parseInt(payload.id, 10);
+    const idNum = parseInt(payload.id || payload.id_usuario, 10);
 
     // Edição de usuário existente
     if (idNum) {
@@ -1201,6 +1227,10 @@ const UsuarioModel = {
           sheet.getRange(rowNum, colPerfil).setValue(perfil);
           sheet.getRange(rowNum, colUg).setValue(ug);
           sheet.getRange(rowNum, colAtivo).setValue(ativo);
+
+          if (colEmail > 0) {
+            sheet.getRange(rowNum, colEmail).setValue(emailLimpo);
+          }
 
           // Atualiza senha se informada
           if (payload.senha && String(payload.senha).trim() !== '') {
@@ -1234,7 +1264,18 @@ const UsuarioModel = {
     const hashSenha = this._hashSenha(payload.senha.trim());
     const criadoEm = Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm:ss');
 
-    sheet.appendRow([novoId, nomeLimpo, loginLimpo, hashSenha, perfil, ug, ativo, criadoEm, '']);
+    const novaLinha = new Array(headers.length).fill('');
+    novaLinha[colId - 1] = novoId;
+    novaLinha[colNome - 1] = nomeLimpo;
+    novaLinha[colLogin - 1] = loginLimpo;
+    if (colEmail > 0) novaLinha[colEmail - 1] = emailLimpo;
+    novaLinha[colHash - 1] = hashSenha;
+    novaLinha[colPerfil - 1] = perfil;
+    novaLinha[colUg - 1] = ug;
+    novaLinha[colAtivo - 1] = ativo;
+    if (colCriado > 0) novaLinha[colCriado - 1] = criadoEm;
+
+    sheet.appendRow(novaLinha);
     return { sucesso: true, id: novoId, operacao: 'inclusao' };
   },
 
@@ -1248,14 +1289,16 @@ const UsuarioModel = {
     const colId = headers.indexOf('id_usuario') + 1 || 1;
     const colHash = headers.indexOf('senha_hash') + 1 || 4;
 
-    const hash = this._hashSenha(novaSenha.trim());
+    const idNum = parseInt(id, 10);
+    const novoHash = this._hashSenha(novaSenha.trim());
+
     for (let r = 1; r < data.length; r++) {
-      if (data[r][colId - 1] == id) {
-        sheet.getRange(r + 1, colHash).setValue(hash);
-        return { sucesso: true, mensagem: 'Senha alterada com sucesso!' };
+      if (data[r][colId - 1] == idNum || (isNaN(idNum) && String(data[r][headers.indexOf('login')]).trim().toLowerCase() === String(id).trim().toLowerCase())) {
+        sheet.getRange(r + 1, colHash).setValue(novoHash);
+        return { sucesso: true, id: data[r][colId - 1] };
       }
     }
-    throw new Error('Usuário não localizado.');
+    throw new Error('Usuário não localizado para alteração de senha.');
   },
 
   excluirUsuario: function(id) {

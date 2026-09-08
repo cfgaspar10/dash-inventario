@@ -791,6 +791,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (elements.formAlterarSenhaModal) {
       elements.formAlterarSenhaModal.addEventListener('submit', confirmarAlterarSenhaAction);
     }
+    if (elements.modalSenhaOverlay) {
+      elements.modalSenhaOverlay.addEventListener('click', (e) => {
+        if (e.target === elements.modalSenhaOverlay) fecharModalAlterarSenha();
+      });
+    }
 
     // Alternância de Abas (MVC Views)
     elements.tabDashboard.addEventListener('click', () => switchView('dashboard'));
@@ -2962,7 +2967,7 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.formUsuarioCadastro.scrollIntoView({ behavior: 'smooth' });
 
     if (u) {
-      elements.usuarioId.value = u.id_usuario;
+      elements.usuarioId.value = u.id_usuario || u.id;
       elements.formUsuarioTitle.textContent = `Editar Usuário: ${u.nome || u.login}`;
       elements.usuarioNome.value = u.nome || '';
       elements.usuarioLogin.value = u.login || '';
@@ -3017,6 +3022,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const payload = {
       id_usuario: id,
+      id: id,
       nome,
       login,
       email,
@@ -3058,16 +3064,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function abrirModalAlterarSenha(usuario) {
     if (!usuario) return;
-    elements.senhaUsuarioId.value = usuario.id_usuario;
+    const userId = usuario.id_usuario || usuario.id;
+    elements.senhaUsuarioId.value = userId;
     elements.senhaUsuarioNome.textContent = `${usuario.nome} (${usuario.login})`;
     elements.novaSenhaInput.value = '';
     elements.confirmaSenhaInput.value = '';
-    elements.modalSenhaOverlay.classList.add('show');
+    elements.modalSenhaOverlay.classList.add('active');
     elements.novaSenhaInput.focus();
   }
 
   function fecharModalAlterarSenha() {
-    elements.modalSenhaOverlay.classList.remove('show');
+    elements.modalSenhaOverlay.classList.remove('active');
     elements.formAlterarSenhaModal.reset();
   }
 

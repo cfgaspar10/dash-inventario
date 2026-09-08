@@ -1707,11 +1707,19 @@ body {
   margin-bottom: 28px;
 }
 
-.login-emblem {
-  font-size: 44px;
-  margin-bottom: 8px;
-  display: inline-block;
-  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+.login-logo-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.login-logo-img {
+  max-width: 250px;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.06));
 }
 
 .login-institution {
@@ -1720,15 +1728,6 @@ body {
   letter-spacing: 0.08em;
   color: #64748b;
   text-transform: uppercase;
-}
-
-.login-agency {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  color: #0f172a;
-  text-transform: uppercase;
-  margin-top: 2px;
 }
 
 .login-title {
