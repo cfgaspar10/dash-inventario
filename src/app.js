@@ -286,7 +286,40 @@ document.addEventListener('DOMContentLoaded', () => {
               runner.alterarSenhaUsuario(payload.id, payload.novaSenha);
               break;
             case 'salvarUorg':
-              runner.salvarUorg(payload.uorg);
+              runner.salvarUorg(payload.uorg || payload);
+              break;
+            case 'cadastrarUorg':
+              runner.cadastrarUorg(payload.uorg || payload);
+              break;
+            case 'excluirUorg':
+              runner.excluirUorg(payload.id);
+              break;
+            case 'toggleUorg':
+              runner.toggleUorg(payload.id, payload.ativo);
+              break;
+            case 'salvarUg':
+              runner.salvarUg(payload.ug || payload);
+              break;
+            case 'excluirUg':
+              runner.excluirUg(payload.siglaOuId || payload.sigla);
+              break;
+            case 'restaurarUgsPadrao':
+              runner.restaurarUgsPadrao();
+              break;
+            case 'salvarParametrosCiclo':
+              runner.salvarParametrosCiclo(payload.ciclo || payload);
+              break;
+            case 'ativarCiclo':
+              runner.ativarCiclo(payload.idOuAno || payload.ano);
+              break;
+            case 'excluirCiclo':
+              runner.excluirCiclo(payload.idOuAno || payload.ano);
+              break;
+            case 'salvarEtapaCronograma':
+              runner.salvarEtapaCronograma(payload.etapa || payload);
+              break;
+            case 'excluirEtapaCronograma':
+              runner.excluirEtapaCronograma(payload.id);
               break;
             case 'obterDadosCompletos':
               runner.obterDadosCompletos();
@@ -477,6 +510,7 @@ document.addEventListener('DOMContentLoaded', () => {
           aplicarUsuarioLogado();
           showToast(`Bem-vindo(a), ${res.usuario.nome || res.usuario.login}!`, 'success');
           carregarUsuarios();
+          carregarDadosDoBancoGoogle();
         }, 350);
       } else {
         exibirFeedbackLogin(res.mensagem || 'Usuário ou senha incorretos.', 'error');
@@ -607,14 +641,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function carregarDadosDoBancoGoogle() {
-    if (typeof google === 'undefined' || !google.script || !google.script.run) {
-      return;
-    }
-
-    google.script.run
-      .withSuccessHandler((res) => {
+    ApiClient.executar('obterDadosCompletos')
+      .then((res) => {
         if (!res || res.status !== 'success') {
-          console.warn('Sincronização com o Google Sheets retornou aviso:', res);
+          console.warn('Sincronização com o banco retornou aviso:', res);
           return;
         }
 
@@ -636,10 +666,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         sincronizarInterfaceComDados();
       })
-      .withFailureHandler((err) => {
-        console.error('Falha na comunicação de sincronização com o Google Sheets:', err);
-      })
-      .obterDadosCompletos();
+      .catch((err) => {
+        console.error('Falha na comunicação de sincronização com o banco:', err);
+      });
   }
 
   /**
@@ -1405,41 +1434,27 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.btnSalvarGestao.disabled = true;
     elements.btnSalvarGestao.textContent = 'Salvando...';
 
-    // Se estiver rodando dentro do Google Apps Script:
-    if (typeof google !== 'undefined' && google.script && google.script.run) {
-      google.script.run
-        .withSuccessHandler((res) => {
-          elements.btnSalvarGestao.disabled = false;
-          elements.btnSalvarGestao.textContent = '💾 Salvar Alterações';
-
-          if (res && res.status === 'success') {
-            atualizarItemNoEstadoLocal(id, payload);
-            limparFormularioGestao();
-            elements.gestaoSelectUorg.value = '';
-            showToast('✓ Informações da UORG atualizadas com sucesso!', 'success');
-            switchView('dashboard');
-          } else {
-            showToast('Erro ao salvar: ' + (res.mensagem || 'Erro desconhecido'), 'error');
-          }
-        })
-        .withFailureHandler((err) => {
-          elements.btnSalvarGestao.disabled = false;
-          elements.btnSalvarGestao.textContent = '💾 Salvar Alterações';
-          showToast('Erro de comunicação: ' + err.toString(), 'error');
-        })
-        .salvarUorg(payload);
-    } else {
-      // Modo local / preview
-      setTimeout(() => {
+    ApiClient.executar('salvarUorg', { uorg: payload })
+      .then((res) => {
         elements.btnSalvarGestao.disabled = false;
         elements.btnSalvarGestao.textContent = '💾 Salvar Alterações';
-        atualizarItemNoEstadoLocal(id, payload);
-        limparFormularioGestao();
-        elements.gestaoSelectUorg.value = '';
-        showToast('✓ Informações da UORG atualizadas com sucesso!', 'success');
-        switchView('dashboard');
-      }, 300);
-    }
+
+        if (res && res.status === 'success') {
+          atualizarItemNoEstadoLocal(id, payload);
+          limparFormularioGestao();
+          elements.gestaoSelectUorg.value = '';
+          showToast('✓ Informações da UORG atualizadas com sucesso!', 'success');
+          switchView('dashboard');
+          carregarDadosDoBancoGoogle();
+        } else {
+          showToast('Erro ao salvar: ' + (res.mensagem || 'Erro desconhecido'), 'error');
+        }
+      })
+      .catch((err) => {
+        elements.btnSalvarGestao.disabled = false;
+        elements.btnSalvarGestao.textContent = '💾 Salvar Alterações';
+        showToast('Erro de comunicação: ' + err.toString(), 'error');
+      });
   }
 
   function atualizarItemNoEstadoLocal(id, payload) {
@@ -2136,26 +2151,21 @@ document.addEventListener('DOMContentLoaded', () => {
       carregarDadosDoBancoGoogle();
     };
 
-    if (typeof google !== 'undefined' && google.script && google.script.run) {
-      google.script.run
-        .withSuccessHandler((res) => {
-          if (res && res.status === 'success') {
-            aplicarSucesso(res.dados || payload);
-          } else {
-            btnSalvar.disabled = false;
-            btnSalvar.textContent = '💾 Salvar UG';
-            showToast('Erro ao salvar UG: ' + (res.mensagem || 'Falha'), 'error');
-          }
-        })
-        .withFailureHandler((err) => {
+    ApiClient.executar('salvarUg', { ug: payload })
+      .then((res) => {
+        if (res && res.status === 'success') {
+          aplicarSucesso(res.dados || payload);
+        } else {
           btnSalvar.disabled = false;
           btnSalvar.textContent = '💾 Salvar UG';
-          showToast('Erro de conexão: ' + err.toString(), 'error');
-        })
-        .salvarUg(payload);
-    } else {
-      setTimeout(() => aplicarSucesso(payload), 300);
-    }
+          showToast('Erro ao salvar UG: ' + (res.mensagem || 'Falha'), 'error');
+        }
+      })
+      .catch((err) => {
+        btnSalvar.disabled = false;
+        btnSalvar.textContent = '💾 Salvar UG';
+        showToast('Erro de conexão: ' + err.toString(), 'error');
+      });
   }
 
   async function excluirUgAction(sigla) {
@@ -2184,22 +2194,17 @@ document.addEventListener('DOMContentLoaded', () => {
       carregarDadosDoBancoGoogle();
     };
 
-    if (typeof google !== 'undefined' && google.script && google.script.run) {
-      google.script.run
-        .withSuccessHandler((res) => {
-          if (res && res.status === 'success') {
-            aplicarExclusao();
-          } else {
-            showToast('Erro ao excluir UG: ' + (res.mensagem || 'Falha'), 'error');
-          }
-        })
-        .withFailureHandler((err) => {
-          showToast('Erro de comunicação: ' + err.toString(), 'error');
-        })
-        .excluirUg(sigla);
-    } else {
-      aplicarExclusao();
-    }
+    ApiClient.executar('excluirUg', { siglaOuId: sigla })
+      .then((res) => {
+        if (res && res.status === 'success') {
+          aplicarExclusao();
+        } else {
+          showToast('Erro ao excluir UG: ' + (res.mensagem || 'Falha'), 'error');
+        }
+      })
+      .catch((err) => {
+        showToast('Erro de comunicação: ' + err.toString(), 'error');
+      });
   }
 
   async function restaurarUgsPadraoAction() {
@@ -2229,30 +2234,25 @@ document.addEventListener('DOMContentLoaded', () => {
       carregarDadosDoBancoGoogle();
     };
 
-    if (typeof google !== 'undefined' && google.script && google.script.run) {
-      google.script.run
-        .withSuccessHandler((res) => {
-          if (res && res.status === 'success') {
-            aplicarRestauracao();
-          } else {
-            if (btn) {
-              btn.disabled = false;
-              btn.innerHTML = '<span>🔄</span> Restaurar UGs do Modelo';
-            }
-            showToast('Erro ao restaurar UGs: ' + (res.mensagem || 'Falha desconhecida'), 'error');
-          }
-        })
-        .withFailureHandler((err) => {
+    ApiClient.executar('restaurarUgsPadrao')
+      .then((res) => {
+        if (res && res.status === 'success') {
+          aplicarRestauracao();
+        } else {
           if (btn) {
             btn.disabled = false;
             btn.innerHTML = '<span>🔄</span> Restaurar UGs do Modelo';
           }
-          showToast('Erro de comunicação: ' + err.toString(), 'error');
-        })
-        .restaurarUgsPadrao();
-    } else {
-      aplicarRestauracao();
-    }
+          showToast('Erro ao restaurar UGs: ' + (res.mensagem || 'Falha desconhecida'), 'error');
+        }
+      })
+      .catch((err) => {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>🔄</span> Restaurar UGs do Modelo';
+        }
+        showToast('Erro de comunicação: ' + err.toString(), 'error');
+      });
   }
 
   // --- Sub-aba 2: UORGs & Ativação ---
@@ -2394,26 +2394,21 @@ document.addEventListener('DOMContentLoaded', () => {
       carregarDadosDoBancoGoogle();
     };
 
-    if (typeof google !== 'undefined' && google.script && google.script.run) {
-      google.script.run
-        .withSuccessHandler((res) => {
-          if (res && res.status === 'success') {
-            aplicarSucesso(res.dados || payload);
-          } else {
-            btn.disabled = false;
-            btn.textContent = '💾 Confirmar Cadastro da UORG';
-            showToast('Erro: ' + (res.mensagem || 'Falha ao cadastrar'), 'error');
-          }
-        })
-        .withFailureHandler((err) => {
+    ApiClient.executar('cadastrarUorg', { uorg: payload })
+      .then((res) => {
+        if (res && res.status === 'success') {
+          aplicarSucesso(res.dados || payload);
+        } else {
           btn.disabled = false;
           btn.textContent = '💾 Confirmar Cadastro da UORG';
-          showToast('Erro de comunicação: ' + err.toString(), 'error');
-        })
-        .cadastrarUorg(payload);
-    } else {
-      setTimeout(() => aplicarSucesso(payload), 300);
-    }
+          showToast('Erro: ' + (res.mensagem || 'Falha ao cadastrar'), 'error');
+        }
+      })
+      .catch((err) => {
+        btn.disabled = false;
+        btn.textContent = '💾 Confirmar Cadastro da UORG';
+        showToast('Erro de comunicação: ' + err.toString(), 'error');
+      });
   }
 
   function toggleUorgAction(id, novoStatus) {
@@ -2428,22 +2423,17 @@ document.addEventListener('DOMContentLoaded', () => {
       carregarDadosDoBancoGoogle();
     };
 
-    if (typeof google !== 'undefined' && google.script && google.script.run) {
-      google.script.run
-        .withSuccessHandler((res) => {
-          if (res && res.status === 'success') {
-            aplicar();
-          } else {
-            showToast('Erro ao alternar status: ' + (res.mensagem || 'Falha'), 'error');
-          }
-        })
-        .withFailureHandler((err) => {
-          showToast('Erro de comunicação: ' + err.toString(), 'error');
-        })
-        .toggleUorg(id, novoStatus);
-    } else {
-      aplicar();
-    }
+    ApiClient.executar('toggleUorg', { id: id, ativo: novoStatus })
+      .then((res) => {
+        if (res && res.status === 'success') {
+          aplicar();
+        } else {
+          showToast('Erro ao alternar status: ' + (res.mensagem || 'Falha'), 'error');
+        }
+      })
+      .catch((err) => {
+        showToast('Erro de comunicação: ' + err.toString(), 'error');
+      });
   }
 
   async function excluirUorgAction(id, sigla) {
@@ -2468,22 +2458,17 @@ document.addEventListener('DOMContentLoaded', () => {
       carregarDadosDoBancoGoogle();
     };
 
-    if (typeof google !== 'undefined' && google.script && google.script.run) {
-      google.script.run
-        .withSuccessHandler((res) => {
-          if (res && res.status === 'success') {
-            aplicarExclusao();
-          } else {
-            showToast('Erro ao excluir UORG: ' + (res.mensagem || 'Falha'), 'error');
-          }
-        })
-        .withFailureHandler((err) => {
-          showToast('Erro de comunicação: ' + err.toString(), 'error');
-        })
-        .excluirUorg(id);
-    } else {
-      aplicarExclusao();
-    }
+    ApiClient.executar('excluirUorg', { id: id })
+      .then((res) => {
+        if (res && res.status === 'success') {
+          aplicarExclusao();
+        } else {
+          showToast('Erro ao excluir UORG: ' + (res.mensagem || 'Falha'), 'error');
+        }
+      })
+      .catch((err) => {
+        showToast('Erro de comunicação: ' + err.toString(), 'error');
+      });
   }
 
   // --- Sub-aba 3: Gestão de Exercícios & Ciclos ---
@@ -2615,26 +2600,21 @@ document.addEventListener('DOMContentLoaded', () => {
       carregarDadosDoBancoGoogle();
     };
 
-    if (typeof google !== 'undefined' && google.script && google.script.run) {
-      google.script.run
-        .withSuccessHandler((res) => {
-          if (res && res.status === 'success') {
-            aplicarSucesso();
-          } else {
-            btn.disabled = false;
-            btn.textContent = '💾 Salvar Exercício / Ciclo';
-            showToast('Erro ao salvar ciclo: ' + (res.mensagem || 'Falha'), 'error');
-          }
-        })
-        .withFailureHandler((err) => {
+    ApiClient.executar('salvarParametrosCiclo', { ciclo: payload })
+      .then((res) => {
+        if (res && res.status === 'success') {
+          aplicarSucesso();
+        } else {
           btn.disabled = false;
           btn.textContent = '💾 Salvar Exercício / Ciclo';
-          showToast('Erro de comunicação: ' + err.toString(), 'error');
-        })
-        .salvarParametrosCiclo(payload);
-    } else {
-      setTimeout(() => aplicarSucesso(), 300);
-    }
+          showToast('Erro ao salvar ciclo: ' + (res.mensagem || 'Falha'), 'error');
+        }
+      })
+      .catch((err) => {
+        btn.disabled = false;
+        btn.textContent = '💾 Salvar Exercício / Ciclo';
+        showToast('Erro de comunicação: ' + err.toString(), 'error');
+      });
   }
 
   function ativarCicloAction(ano) {
@@ -2648,22 +2628,17 @@ document.addEventListener('DOMContentLoaded', () => {
       carregarDadosDoBancoGoogle();
     };
 
-    if (typeof google !== 'undefined' && google.script && google.script.run) {
-      google.script.run
-        .withSuccessHandler((res) => {
-          if (res && res.status === 'success') {
-            aplicar();
-          } else {
-            showToast('Erro ao ativar ciclo: ' + (res.mensagem || 'Falha'), 'error');
-          }
-        })
-        .withFailureHandler((err) => {
-          showToast('Erro de comunicação: ' + err.toString(), 'error');
-        })
-        .ativarCiclo(ano);
-    } else {
-      aplicar();
-    }
+    ApiClient.executar('ativarCiclo', { idOuAno: ano })
+      .then((res) => {
+        if (res && res.status === 'success') {
+          aplicar();
+        } else {
+          showToast('Erro ao ativar ciclo: ' + (res.mensagem || 'Falha'), 'error');
+        }
+      })
+      .catch((err) => {
+        showToast('Erro de comunicação: ' + err.toString(), 'error');
+      });
   }
 
   async function excluirCicloAction(ano) {
@@ -2685,22 +2660,17 @@ document.addEventListener('DOMContentLoaded', () => {
       carregarDadosDoBancoGoogle();
     };
 
-    if (typeof google !== 'undefined' && google.script && google.script.run) {
-      google.script.run
-        .withSuccessHandler((res) => {
-          if (res && res.status === 'success') {
-            aplicar();
-          } else {
-            showToast('Erro ao excluir ciclo: ' + (res.mensagem || 'Falha'), 'error');
-          }
-        })
-        .withFailureHandler((err) => {
-          showToast('Erro de comunicação: ' + err.toString(), 'error');
-        })
-        .excluirCiclo(ano);
-    } else {
-      aplicar();
-    }
+    ApiClient.executar('excluirCiclo', { idOuAno: ano })
+      .then((res) => {
+        if (res && res.status === 'success') {
+          aplicar();
+        } else {
+          showToast('Erro ao excluir ciclo: ' + (res.mensagem || 'Falha'), 'error');
+        }
+      })
+      .catch((err) => {
+        showToast('Erro de comunicação: ' + err.toString(), 'error');
+      });
   }
 
   // --- Sub-aba 4: Régua do Cronograma Oficial ---
@@ -2812,26 +2782,21 @@ document.addEventListener('DOMContentLoaded', () => {
       carregarDadosDoBancoGoogle();
     };
 
-    if (typeof google !== 'undefined' && google.script && google.script.run) {
-      google.script.run
-        .withSuccessHandler((res) => {
-          if (res && res.status === 'success') {
-            aplicarSucesso();
-          } else {
-            btn.disabled = false;
-            btn.textContent = '💾 Salvar Etapa';
-            showToast('Erro ao salvar etapa: ' + (res.mensagem || 'Falha'), 'error');
-          }
-        })
-        .withFailureHandler((err) => {
+    ApiClient.executar('salvarEtapaCronograma', { etapa: payload })
+      .then((res) => {
+        if (res && res.status === 'success') {
+          aplicarSucesso();
+        } else {
           btn.disabled = false;
           btn.textContent = '💾 Salvar Etapa';
-          showToast('Erro de comunicação: ' + err.toString(), 'error');
-        })
-        .salvarEtapaCronograma(payload);
-    } else {
-      setTimeout(() => aplicarSucesso(), 300);
-    }
+          showToast('Erro ao salvar etapa: ' + (res.mensagem || 'Falha'), 'error');
+        }
+      })
+      .catch((err) => {
+        btn.disabled = false;
+        btn.textContent = '💾 Salvar Etapa';
+        showToast('Erro de comunicação: ' + err.toString(), 'error');
+      });
   }
 
   async function excluirEtapaCronogramaAction(item, index) {
@@ -2854,22 +2819,17 @@ document.addEventListener('DOMContentLoaded', () => {
       carregarDadosDoBancoGoogle();
     };
 
-    if (typeof google !== 'undefined' && google.script && google.script.run) {
-      google.script.run
-        .withSuccessHandler((res) => {
-          if (res && res.status === 'success') {
-            aplicarExclusao();
-          } else {
-            showToast('Erro ao excluir etapa: ' + (res.mensagem || 'Falha'), 'error');
-          }
-        })
-        .withFailureHandler((err) => {
-          showToast('Erro de comunicação: ' + err.toString(), 'error');
-        })
-        .excluirEtapaCronograma(item.id_etapa || (index + 1));
-    } else {
-      aplicarExclusao();
-    }
+    ApiClient.executar('excluirEtapaCronograma', { id: item.id_etapa || (index + 1) })
+      .then((res) => {
+        if (res && res.status === 'success') {
+          aplicarExclusao();
+        } else {
+          showToast('Erro ao excluir etapa: ' + (res.mensagem || 'Falha'), 'error');
+        }
+      })
+      .catch((err) => {
+        showToast('Erro de comunicação: ' + err.toString(), 'error');
+      });
   }
 
   // ============================================================================
